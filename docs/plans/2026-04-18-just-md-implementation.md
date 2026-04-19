@@ -366,7 +366,9 @@ Commit per sub-step: `feat(theme): ThemeStore <operation>`.
 
 ## Phase 3: MarkdownDocument (NSDocument)
 
-### Task 3.1: MarkdownDocument skeleton
+> **Status:** ✅ Phase complete (3.1 – 3.3). Smoke test confirmed: app launches without window, opens .md files, "Open With" works, no auto-quit.
+
+### Task 3.1: MarkdownDocument skeleton ✅
 
 **Files:**
 - Create: `JustMD/JustMD/Document/MarkdownDocument.swift`
@@ -451,7 +453,7 @@ final class DocumentViewController: NSViewController {
 
 Commit: `feat(doc): scaffold MarkdownDocument, window, view controller`.
 
-### Task 3.2: Info.plist — document types
+### Task 3.2: Info.plist — document types ✅
 
 **Files:**
 - Modify: `JustMD/JustMD/Info.plist` (create if missing)
@@ -500,7 +502,7 @@ Commit: `feat(doc): scaffold MarkdownDocument, window, view controller`.
 
 **Step 5 — commit:** `feat(doc): register .md file types and NSDocument class`.
 
-### Task 3.3: Smoke test — open a file manually
+### Task 3.3: Smoke test — open a file manually ✅
 
 **Step 1:** Create a test file `/tmp/test.md` with sample markdown.
 
