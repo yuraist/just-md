@@ -993,7 +993,9 @@ Smoke test: launch with no args → Welcome appears. Double-click `.md` → docu
 
 ## Phase 9: Preferences + theme management
 
-### Task 9.1: PreferencesStore
+> **Status:** ✅ Phase complete (9.1 – 9.4). 70 tests green.
+
+### Task 9.1: PreferencesStore ✅
 
 **Files:**
 - Create: `JustMD/JustMD/Preferences/PreferencesStore.swift`
@@ -1023,7 +1025,7 @@ Tests: set values, recreate instance, values persist (via injected UserDefaults 
 
 Commit.
 
-### Task 9.2: PreferencesView SwiftUI
+### Task 9.2: PreferencesView SwiftUI ✅
 
 **Files:**
 - Create: `JustMD/JustMD/Preferences/PreferencesView.swift`
@@ -1037,7 +1039,7 @@ Smoke test: change font size → all open editor windows update live. (This requ
 
 Commit.
 
-### Task 9.3: Manage Themes window
+### Task 9.3: Manage Themes window ✅
 
 **Files:**
 - Create: `JustMD/JustMD/Preferences/ManageThemesView.swift`
@@ -1050,7 +1052,7 @@ Tests: end-to-end via `ThemeStore` in a tmp dir — import file, list, export, d
 
 Commit.
 
-### Task 9.4: Register .justmd-theme as document type
+### Task 9.4: Register .justmd-theme as document type ✅
 
 Add to Info.plist `UTExportedTypeDeclarations`:
 
