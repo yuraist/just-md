@@ -10,8 +10,11 @@ import Cocoa
 @main
 class AppDelegate: NSObject, NSApplicationDelegate {
 
+    private var themeMenu: NSMenu?
+
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         installFormatMenu()
+        installViewMenu()
         installShowWelcomeMenuItem()
         wirePreferencesMenuItem()
 
@@ -98,11 +101,143 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         formatMenu.addItem(bold)
         formatMenu.addItem(italic)
+
+        // Typography controls. These target AppDelegate directly (rather than
+        // flowing through the responder chain) since they mutate global user
+        // preferences, not the focused text view's state.
+        formatMenu.addItem(NSMenuItem.separator())
+
+        let bigger = NSMenuItem(title: "Bigger",
+                                action: #selector(makeFontBigger(_:)),
+                                keyEquivalent: "+")
+        bigger.keyEquivalentModifierMask = .command
+        bigger.target = self
+        formatMenu.addItem(bigger)
+
+        let smaller = NSMenuItem(title: "Smaller",
+                                 action: #selector(makeFontSmaller(_:)),
+                                 keyEquivalent: "-")
+        smaller.keyEquivalentModifierMask = .command
+        smaller.target = self
+        formatMenu.addItem(smaller)
+
+        let actual = NSMenuItem(title: "Actual Size",
+                                action: #selector(makeFontActualSize(_:)),
+                                keyEquivalent: "0")
+        actual.keyEquivalentModifierMask = .command
+        actual.target = self
+        formatMenu.addItem(actual)
+
+        formatMenu.addItem(NSMenuItem.separator())
+
+        let serif = NSMenuItem(title: "Serif",
+                               action: #selector(setFontSerif(_:)),
+                               keyEquivalent: "1")
+        serif.keyEquivalentModifierMask = [.command, .control]
+        serif.target = self
+        formatMenu.addItem(serif)
+
+        let sans = NSMenuItem(title: "Sans",
+                              action: #selector(setFontSans(_:)),
+                              keyEquivalent: "2")
+        sans.keyEquivalentModifierMask = [.command, .control]
+        sans.target = self
+        formatMenu.addItem(sans)
+
+        let mono = NSMenuItem(title: "Mono",
+                              action: #selector(setFontMono(_:)),
+                              keyEquivalent: "3")
+        mono.keyEquivalentModifierMask = [.command, .control]
+        mono.target = self
+        formatMenu.addItem(mono)
+
         formatItem.submenu = formatMenu
 
         // Insert after Edit (standard layout: app, File, Edit, ...).
         let editIndex = mainMenu.items.firstIndex { $0.title == "Edit" } ?? 2
         mainMenu.insertItem(formatItem, at: editIndex + 1)
+    }
+
+    private func installViewMenu() {
+        guard let mainMenu = NSApp.mainMenu else { return }
+        if !mainMenu.items.contains(where: { $0.title == "View" }) {
+            let viewItem = NSMenuItem(title: "View", action: nil, keyEquivalent: "")
+            let viewMenu = NSMenu(title: "View")
+            viewItem.submenu = viewMenu
+            let formatIndex = mainMenu.items.firstIndex { $0.title == "Format" } ?? mainMenu.items.count - 1
+            mainMenu.insertItem(viewItem, at: formatIndex + 1)
+        }
+        installThemeSubmenu()
+    }
+
+    private func installThemeSubmenu() {
+        guard let viewMenu = NSApp.mainMenu?.items.first(where: { $0.title == "View" })?.submenu else { return }
+        if viewMenu.items.contains(where: { $0.title == "Theme" }) { return }
+        let themeItem = NSMenuItem(title: "Theme", action: nil, keyEquivalent: "")
+        let menu = NSMenu(title: "Theme")
+        themeItem.submenu = menu
+        viewMenu.addItem(themeItem)
+        self.themeMenu = menu
+        refreshThemeMenu()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(refreshThemeMenuFromNotification),
+            name: PreferencesStore.didChangeNotification,
+            object: nil
+        )
+    }
+
+    @objc private func refreshThemeMenuFromNotification() {
+        refreshThemeMenu()
+    }
+
+    private func refreshThemeMenu() {
+        guard let menu = themeMenu else { return }
+        menu.removeAllItems()
+        let themes = ThemeStore().loadAll()
+        let currentId = PreferencesStore.shared.themeId
+        for theme in themes {
+            let item = NSMenuItem(title: theme.name,
+                                  action: #selector(selectTheme(_:)),
+                                  keyEquivalent: "")
+            item.target = self
+            item.representedObject = theme.id
+            item.state = (theme.id == currentId) ? .on : .off
+            menu.addItem(item)
+        }
+    }
+
+    @objc func selectTheme(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        PreferencesStore.shared.themeId = id
+    }
+
+    // MARK: - Font menu actions
+
+    @objc func makeFontBigger(_ sender: Any?) {
+        let prefs = PreferencesStore.shared
+        prefs.fontSize = min(prefs.fontSize + 1, 32)
+    }
+
+    @objc func makeFontSmaller(_ sender: Any?) {
+        let prefs = PreferencesStore.shared
+        prefs.fontSize = max(prefs.fontSize - 1, 10)
+    }
+
+    @objc func makeFontActualSize(_ sender: Any?) {
+        PreferencesStore.shared.fontSize = 16
+    }
+
+    @objc func setFontSerif(_ sender: Any?) {
+        PreferencesStore.shared.fontFamily = .serif
+    }
+
+    @objc func setFontSans(_ sender: Any?) {
+        PreferencesStore.shared.fontFamily = .sans
+    }
+
+    @objc func setFontMono(_ sender: Any?) {
+        PreferencesStore.shared.fontFamily = .mono
     }
 
     private func installShowWelcomeMenuItem() {

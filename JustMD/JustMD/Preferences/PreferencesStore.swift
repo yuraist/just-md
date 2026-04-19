@@ -56,7 +56,7 @@ nonisolated public final class PreferencesStore: @unchecked Sendable {
             return v ?? Defaults.fontSize
         }
         set {
-            let clamped = min(max(newValue, 12), 24)
+            let clamped = min(max(newValue, 10), 32)
             defaults.set(clamped, forKey: Keys.fontSize)
             postDidChange()
         }
