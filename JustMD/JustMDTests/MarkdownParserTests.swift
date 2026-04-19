@@ -9,4 +9,16 @@ struct MarkdownParserTests {
         let doc = parser.parse("")
         #expect(doc.blocks.isEmpty)
     }
+
+    @Test("parses ATX heading levels 1–6")
+    func parsesHeadings() {
+        let parser = MarkdownParser()
+        let source = "# H1\n## H2\n###### H6\n"
+        let doc = parser.parse(source)
+        #expect(doc.blocks.count == 3)
+
+        if case let .heading(level, _, _) = doc.blocks[0] { #expect(level == 1) } else { Issue.record("not heading") }
+        if case let .heading(level, _, _) = doc.blocks[1] { #expect(level == 2) } else { Issue.record("not heading") }
+        if case let .heading(level, _, _) = doc.blocks[2] { #expect(level == 6) } else { Issue.record("not heading") }
+    }
 }
