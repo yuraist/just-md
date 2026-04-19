@@ -714,7 +714,9 @@ Test: fenced Swift block gets mono font and color runs. Commit.
 
 ## Phase 6: Inline marker visibility
 
-### Task 6.1: HiddenMarkerLayoutManager
+> **Status:** ✅ Phase complete (6.1 – 6.3). 59 tests green. First visual milestone — editor renders text with syntax colors.
+
+### Task 6.1: HiddenMarkerLayoutManager ✅
 
 **Files:**
 - Create: `JustMD/JustMD/Editor/HiddenMarkerLayoutManager.swift`
@@ -761,7 +763,7 @@ Add `MarkdownAttribute.headingHash` constant.
 
 Commit: `feat(editor): HiddenMarkerLayoutManager collapses markers off active line`.
 
-### Task 6.2: MarkdownTextView
+### Task 6.2: MarkdownTextView ✅
 
 **Files:**
 - Create: `JustMD/JustMD/Editor/MarkdownTextView.swift`
@@ -824,7 +826,7 @@ Smoke test: launch app, open a `.md` file with headings, bold, inline code. Veri
 
 Commit: `feat(editor): MarkdownTextView with active-line marker visibility`.
 
-### Task 6.3: Connect document → view → storage round trip
+### Task 6.3: Connect document → view → storage round trip ✅
 
 - Document `read` populates `storage` text.
 - Edits in text view propagate to `document.text` (override `textStorage(_:didProcessEditing:range:changeInLength:)` in view controller, set `document.text = storage.string`, call `document.updateChangeCount(.changeDone)`).
