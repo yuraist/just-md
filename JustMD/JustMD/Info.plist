@@ -19,6 +19,18 @@
             <key>NSDocumentClass</key>
             <string>$(PRODUCT_MODULE_NAME).MarkdownDocument</string>
         </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>JustMD Theme</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>Owner</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>com.justmd.theme</string>
+            </array>
+        </dict>
     </array>
     <key>UTImportedTypeDeclarations</key>
     <array>
@@ -39,6 +51,26 @@
                     <string>markdown</string>
                     <string>mdown</string>
                     <string>mkd</string>
+                </array>
+            </dict>
+        </dict>
+    </array>
+    <key>UTExportedTypeDeclarations</key>
+    <array>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>com.justmd.theme</string>
+            <key>UTTypeConformsTo</key>
+            <array>
+                <string>public.json</string>
+            </array>
+            <key>UTTypeDescription</key>
+            <string>JustMD Theme</string>
+            <key>UTTypeTagSpecification</key>
+            <dict>
+                <key>public.filename-extension</key>
+                <array>
+                    <string>justmd-theme</string>
                 </array>
             </dict>
         </dict>

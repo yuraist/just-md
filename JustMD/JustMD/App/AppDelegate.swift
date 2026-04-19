@@ -25,6 +25,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func application(_ application: NSApplication, open urls: [URL]) {
+        let themeStore = ThemeStore()
+        var documentURLs: [URL] = []
+        for url in urls {
+            if url.pathExtension == "justmd-theme" {
+                do {
+                    let theme = try themeStore.importTheme(from: url)
+                    PreferencesBridge.shared.reloadThemes()
+                    let alert = NSAlert()
+                    alert.messageText = "Imported theme '\(theme.name)'"
+                    alert.informativeText = "The theme has been added to your custom presets."
+                    alert.addButton(withTitle: "OK")
+                    alert.runModal()
+                } catch {
+                    NSAlert(error: error).runModal()
+                }
+            } else {
+                documentURLs.append(url)
+            }
+        }
+        for url in documentURLs {
+            NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, _ in }
+        }
+    }
+
     func applicationWillTerminate(_ aNotification: Notification) {
         // No-op.
     }
