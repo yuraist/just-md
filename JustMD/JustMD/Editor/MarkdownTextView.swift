@@ -24,6 +24,31 @@ final class MarkdownTextView: NSTextView {
         self.textContainerInset = NSSize(width: 40, height: 32)
     }
 
+    // MARK: - Link handling
+
+    // NSTextView opens links on plain click by default. Markdown authors more
+    // commonly want the caret to land inside the link text to edit it and
+    // open the URL only on Cmd+click — matching Bear, iA Writer, and Typora.
+    override func clicked(onLink link: Any, at charIndex: Int) {
+        let modifiers = NSApp.currentEvent?.modifierFlags ?? []
+        let url: URL?
+        if let u = link as? URL {
+            url = u
+        } else if let s = link as? String {
+            url = URL(string: s)
+        } else {
+            url = nil
+        }
+        if modifiers.contains(.command), let url {
+            NSWorkspace.shared.open(url)
+        } else {
+            // Plain click: move caret into the clicked position rather than
+            // navigating. Call super so default accessibility behaviour is
+            // preserved if the user has some other modifier held.
+            setSelectedRange(NSRange(location: charIndex, length: 0))
+        }
+    }
+
     // MARK: - Formatting (Cmd+B / Cmd+I)
 
     // NSTextView does not expose `toggleBold(_:)` / `toggleItalic(_:)` as
