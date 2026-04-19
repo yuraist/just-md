@@ -58,4 +58,46 @@ struct MarkdownParserTests {
         // overall range covers the whole block
         #expect(nsSource.substring(with: range) == source)
     }
+
+    @Test("parses unordered list")
+    func parsesUnorderedList() {
+        let parser = MarkdownParser()
+        let doc = parser.parse("- one\n- two\n- three\n")
+        #expect(doc.blocks.count == 1)
+        guard case let .list(ordered, items, _) = doc.blocks[0] else {
+            Issue.record("not list")
+            return
+        }
+        #expect(ordered == false)
+        #expect(items.count == 3)
+        #expect(items.allSatisfy { $0.taskState == nil })
+    }
+
+    @Test("parses ordered list")
+    func parsesOrderedList() {
+        let parser = MarkdownParser()
+        let doc = parser.parse("1. one\n2. two\n3. three\n")
+        #expect(doc.blocks.count == 1)
+        guard case let .list(ordered, items, _) = doc.blocks[0] else {
+            Issue.record("not list")
+            return
+        }
+        #expect(ordered == true)
+        #expect(items.count == 3)
+    }
+
+    @Test("parses GFM task list with checked and unchecked items")
+    func parsesTaskList() {
+        let parser = MarkdownParser()
+        let doc = parser.parse("- [ ] todo\n- [x] done\n- regular\n")
+        #expect(doc.blocks.count == 1)
+        guard case let .list(_, items, _) = doc.blocks[0] else {
+            Issue.record("not list")
+            return
+        }
+        #expect(items.count == 3)
+        #expect(items[0].taskState == .unchecked)
+        #expect(items[1].taskState == .checked)
+        #expect(items[2].taskState == nil)
+    }
 }

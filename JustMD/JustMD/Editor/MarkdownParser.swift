@@ -23,7 +23,7 @@ nonisolated struct ListItem: Sendable {
     let taskState: TaskState?
 }
 
-nonisolated enum TaskState: Sendable {
+nonisolated enum TaskState: Sendable, Equatable {
     case unchecked
     case checked
 }
@@ -87,6 +87,10 @@ nonisolated final class MarkdownParser: Sendable {
                 }
             case CMARK_NODE_CODE_BLOCK:
                 if let block = codeBlock(from: node, source: source, offsets: offsets) {
+                    blocks.append(block)
+                }
+            case CMARK_NODE_LIST:
+                if let block = listBlock(from: node, source: source, offsets: offsets) {
                     blocks.append(block)
                 }
             default:
@@ -153,6 +157,62 @@ nonisolated final class MarkdownParser: Sendable {
     ) -> Block? {
         let range = nodeRange(node, source: source, offsets: offsets)
         return .thematicBreak(range: range)
+    }
+
+    private func listBlock(
+        from node: UnsafeMutablePointer<cmark_node>,
+        source: String,
+        offsets: ByteOffsetTable
+    ) -> Block? {
+        let listType = cmark_node_get_list_type(node)
+        let ordered = (listType == CMARK_ORDERED_LIST)
+
+        var items: [ListItem] = []
+        var itemNode = cmark_node_first_child(node)
+        while let item = itemNode {
+            if cmark_node_get_type(item) == CMARK_NODE_ITEM {
+                let itemRange = nodeRange(item, source: source, offsets: offsets)
+
+                // Marker range: from item start to first child's start column.
+                let markerRange: NSRange
+                if let firstChild = cmark_node_first_child(item) {
+                    let itemStartLine = cmark_node_get_start_line(item)
+                    let itemStartCol = cmark_node_get_start_column(item)
+                    let childStartLine = cmark_node_get_start_line(firstChild)
+                    let childStartCol = cmark_node_get_start_column(firstChild)
+
+                    if childStartLine == itemStartLine && childStartCol > itemStartCol {
+                        let markerStartByte = offsets.byteOffset(line: itemStartLine, column: itemStartCol)
+                        let markerEndByte = offsets.byteOffset(line: childStartLine, column: childStartCol)
+                        let markerStartUTF16 = utf16Offset(byteOffset: markerStartByte, in: source)
+                        let markerEndUTF16 = utf16Offset(byteOffset: markerEndByte, in: source)
+                        markerRange = NSRange(
+                            location: markerStartUTF16,
+                            length: Swift.max(0, markerEndUTF16 - markerStartUTF16)
+                        )
+                    } else {
+                        markerRange = itemRange
+                    }
+                } else {
+                    markerRange = itemRange
+                }
+
+                // Task state: tasklist extension gives us type_string == "tasklist" for task items.
+                let taskState: TaskState?
+                if let typeCStr = cmark_node_get_type_string(item),
+                   String(cString: typeCStr) == "tasklist" {
+                    taskState = cmark_gfm_extensions_get_tasklist_item_checked(item) ? .checked : .unchecked
+                } else {
+                    taskState = nil
+                }
+
+                items.append(ListItem(range: itemRange, markerRange: markerRange, taskState: taskState))
+            }
+            itemNode = cmark_node_next(item)
+        }
+
+        let range = nodeRange(node, source: source, offsets: offsets)
+        return .list(ordered: ordered, items: items, range: range)
     }
 
     /// Emits a `.codeBlock` only for fenced code blocks. Indented code blocks
