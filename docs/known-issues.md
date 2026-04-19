@@ -85,6 +85,17 @@ Tracking debt accumulated while shipping MVP. Each phase introduced something we
 
 **Approach to try:** Convert image markdown range into a contiguous "attachment region" via custom layout manager — replace the entire range with a single attachment glyph at render time, restore source on save.
 
+### Issue 10-B: Slow window resize on large documents
+
+**Status:** Open. Acceptable for MVP.
+
+Resizing the document window on a large file (~30KB+) is sluggish — the cursor lags as the system re-flows attributed text into the new container width. The highlighter is NOT re-running on resize (only NSTextView's layout manager is recomputing line breaks), so this is a TextKit-1 layout cost, not a parser cost.
+
+**Approaches to try:**
+1. Move to TextKit 2 — `NSTextLayoutManager` is significantly faster for re-flow.
+2. Set `textContainer.widthTracksTextView = true` already done; could also disable `usesFontLeading` or pre-cache line fragments.
+3. Defer attribute application during active resize via `NSWindow.willStartLiveResize` / `didEndLiveResize`, snapshotting the visible rect and re-layout only when the user releases.
+
 ---
 
 ## How we'll address these

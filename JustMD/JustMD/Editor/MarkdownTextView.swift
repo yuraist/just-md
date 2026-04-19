@@ -24,6 +24,34 @@ final class MarkdownTextView: NSTextView {
         self.textContainerInset = NSSize(width: 40, height: 32)
     }
 
+    // MARK: - Typing attributes
+
+    // NSTextView normally inherits typing attributes from the character at the
+    // caret's left neighbor — for us that means new chars pick up whatever the
+    // last highlight pass put there (heading-bold-22pt, code-mono, dimmed marker
+    // color, etc.) until the next highlight pass overwrites them ~200ms later.
+    // Visible symptom: typing at the end of a heading produces giant bold chars
+    // that pop back to normal a moment later.
+    //
+    // Force typing to start from the base font/color in the current highlight
+    // context. The highlighter still re-applies per-block attributes after the
+    // edit, so headings remain bold once they're recognized.
+    override var typingAttributes: [NSAttributedString.Key: Any] {
+        get {
+            if let storage = textStorage as? MarkdownTextStorage,
+               let context = storage.highlightContext {
+                return [
+                    .font: context.baseFont,
+                    .foregroundColor: context.textColor
+                ]
+            }
+            return super.typingAttributes
+        }
+        set {
+            super.typingAttributes = newValue
+        }
+    }
+
     // MARK: - Link handling
 
     // NSTextView opens links on plain click by default. Markdown authors more
