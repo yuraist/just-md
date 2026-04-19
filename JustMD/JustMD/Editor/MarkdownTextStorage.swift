@@ -3,6 +3,11 @@ import AppKit
 nonisolated final class MarkdownTextStorage: NSTextStorage {
     private let backing = NSMutableAttributedString()
 
+    var highlighter: SyntaxHighlighter?
+    var highlightContext: HighlightContext?
+
+    private var isHighlighting = false
+
     override var string: String { backing.string }
 
     override func attributes(at location: Int, effectiveRange range: NSRangePointer?) -> [NSAttributedString.Key : Any] {
@@ -21,5 +26,16 @@ nonisolated final class MarkdownTextStorage: NSTextStorage {
         backing.setAttributes(attrs, range: range)
         edited(.editedAttributes, range: range, changeInLength: 0)
         endEditing()
+    }
+
+    override func processEditing() {
+        super.processEditing()
+        guard let highlighter, let highlightContext else { return }
+        // Avoid recursion: highlighter.apply wraps changes in beginEditing/endEditing
+        // which triggers processEditing again. Guard flag prevents infinite recursion.
+        if isHighlighting { return }
+        isHighlighting = true
+        highlighter.apply(to: self, context: highlightContext)
+        isHighlighting = false
     }
 }
