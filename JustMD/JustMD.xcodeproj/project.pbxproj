@@ -20,19 +20,11 @@
 			remoteGlobalIDString = BEC5A1102F93E200008208B6;
 			remoteInfo = JustMD;
 		};
-		BEC5A12A2F93E202008208B6 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = BEC5A1092F93E200008208B6 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = BEC5A1102F93E200008208B6;
-			remoteInfo = JustMD;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		BEC5A1112F93E200008208B6 /* JustMD.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JustMD.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BEC5A11F2F93E202008208B6 /* JustMDTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JustMDTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		BEC5A1292F93E202008208B6 /* JustMDUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JustMDUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -71,13 +63,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		BEC5A1262F93E202008208B6 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -96,7 +81,6 @@
 			children = (
 				BEC5A1112F93E200008208B6 /* JustMD.app */,
 				BEC5A11F2F93E202008208B6 /* JustMDTests.xctest */,
-				BEC5A1292F93E202008208B6 /* JustMDUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -152,29 +136,6 @@
 			productReference = BEC5A11F2F93E202008208B6 /* JustMDTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		BEC5A1282F93E202008208B6 /* JustMDUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = BEC5A1392F93E202008208B6 /* Build configuration list for PBXNativeTarget "JustMDUITests" */;
-			buildPhases = (
-				BEC5A1252F93E202008208B6 /* Sources */,
-				BEC5A1262F93E202008208B6 /* Frameworks */,
-				BEC5A1272F93E202008208B6 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				BEC5A12B2F93E202008208B6 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				BEC5A12C2F93E202008208B6 /* JustMDUITests */,
-			);
-			name = JustMDUITests;
-			packageProductDependencies = (
-			);
-			productName = JustMDUITests;
-			productReference = BEC5A1292F93E202008208B6 /* JustMDUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -189,10 +150,6 @@
 						CreatedOnToolsVersion = 26.3;
 					};
 					BEC5A11E2F93E202008208B6 = {
-						CreatedOnToolsVersion = 26.3;
-						TestTargetID = BEC5A1102F93E200008208B6;
-					};
-					BEC5A1282F93E202008208B6 = {
 						CreatedOnToolsVersion = 26.3;
 						TestTargetID = BEC5A1102F93E200008208B6;
 					};
@@ -218,7 +175,6 @@
 			targets = (
 				BEC5A1102F93E200008208B6 /* JustMD */,
 				BEC5A11E2F93E202008208B6 /* JustMDTests */,
-				BEC5A1282F93E202008208B6 /* JustMDUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -232,13 +188,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		BEC5A11D2F93E202008208B6 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		BEC5A1272F93E202008208B6 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -262,13 +211,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		BEC5A1252F93E202008208B6 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -276,11 +218,6 @@
 			isa = PBXTargetDependency;
 			target = BEC5A1102F93E200008208B6 /* JustMD */;
 			targetProxy = BEC5A1202F93E202008208B6 /* PBXContainerItemProxy */;
-		};
-		BEC5A12B2F93E202008208B6 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = BEC5A1102F93E200008208B6 /* JustMD */;
-			targetProxy = BEC5A12A2F93E202008208B6 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -537,44 +474,6 @@
 			};
 			name = Release;
 		};
-		BEC5A13A2F93E202008208B6 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = N2HCJ99WYH;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.nuta.JustMDUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = JustMD;
-			};
-			name = Debug;
-		};
-		BEC5A13B2F93E202008208B6 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = N2HCJ99WYH;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.nuta.JustMDUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = JustMD;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -601,15 +500,6 @@
 			buildConfigurations = (
 				BEC5A1372F93E202008208B6 /* Debug */,
 				BEC5A1382F93E202008208B6 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		BEC5A1392F93E202008208B6 /* Build configuration list for PBXNativeTarget "JustMDUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				BEC5A13A2F93E202008208B6 /* Debug */,
-				BEC5A13B2F93E202008208B6 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
