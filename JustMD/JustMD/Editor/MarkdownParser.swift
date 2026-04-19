@@ -81,6 +81,10 @@ nonisolated final class MarkdownParser: Sendable {
                 if let block = paragraphBlock(from: node, source: source, offsets: offsets) {
                     blocks.append(block)
                 }
+            case CMARK_NODE_THEMATIC_BREAK:
+                if let block = thematicBreakBlock(from: node, source: source, offsets: offsets) {
+                    blocks.append(block)
+                }
             default:
                 break
             }
@@ -141,6 +145,25 @@ nonisolated final class MarkdownParser: Sendable {
         let endUTF16 = utf16Offset(byteOffset: endByteExclusive, in: source)
         let length = Swift.max(0, endUTF16 - startUTF16)
         return .paragraph(range: NSRange(location: startUTF16, length: length))
+    }
+
+    private func thematicBreakBlock(
+        from node: UnsafeMutablePointer<cmark_node>,
+        source: String,
+        offsets: ByteOffsetTable
+    ) -> Block? {
+        let startLine = cmark_node_get_start_line(node)
+        let startCol = cmark_node_get_start_column(node)
+        let endLine = cmark_node_get_end_line(node)
+        let endCol = cmark_node_get_end_column(node)
+
+        let startByte = offsets.byteOffset(line: startLine, column: startCol)
+        let endByteExclusive = offsets.byteOffset(line: endLine, column: endCol) + 1
+
+        let startUTF16 = utf16Offset(byteOffset: startByte, in: source)
+        let endUTF16 = utf16Offset(byteOffset: endByteExclusive, in: source)
+        let length = Swift.max(0, endUTF16 - startUTF16)
+        return .thematicBreak(range: NSRange(location: startUTF16, length: length))
     }
 }
 

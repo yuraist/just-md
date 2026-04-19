@@ -30,4 +30,12 @@ struct MarkdownParserTests {
         if case .paragraph = doc.blocks[0] {} else { Issue.record("not paragraph 0") }
         if case .paragraph = doc.blocks[1] {} else { Issue.record("not paragraph 1") }
     }
+
+    @Test("parses thematic break")
+    func parsesThematicBreak() {
+        let parser = MarkdownParser()
+        let doc = parser.parse("---\n")
+        #expect(doc.blocks.count == 1)
+        if case .thematicBreak = doc.blocks[0] {} else { Issue.record("not thematicBreak") }
+    }
 }
