@@ -117,4 +117,13 @@ struct MarkdownParserTests {
         #expect(doc.blocks.count == 1)
         if case .table = doc.blocks[0] {} else { Issue.record("not table") }
     }
+
+    @Test("parses raw HTML block")
+    func parsesHtmlBlock() {
+        let parser = MarkdownParser()
+        let source = "<div>\n<p>hi</p>\n</div>\n"
+        let doc = parser.parse(source)
+        #expect(doc.blocks.count == 1)
+        if case .html = doc.blocks[0] {} else { Issue.record("not html") }
+    }
 }
