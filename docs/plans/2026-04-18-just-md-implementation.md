@@ -14,7 +14,9 @@
 
 ## Phase 0: Project bootstrap
 
-### Task 0.1: Configure build settings
+> **Status:** ✅ Phase complete (0.1, 0.2, 0.3)
+
+### Task 0.1: Configure build settings ✅
 
 **Files:**
 - Modify: `JustMD/JustMD.xcodeproj/project.pbxproj` (via Xcode GUI is fine; these are target settings)
@@ -44,7 +46,7 @@ git add -A
 git commit -m "chore: configure Swift 6, macOS 14 target, sandbox entitlements"
 ```
 
-### Task 0.2: Add SPM dependencies
+### Task 0.2: Add SPM dependencies ✅
 
 **Files:**
 - Modify: `JustMD/JustMD.xcodeproj` (via Xcode GUI: File → Add Package Dependencies…)
@@ -71,7 +73,7 @@ git add -A
 git commit -m "chore: add swift-cmark and Highlightr SPM dependencies"
 ```
 
-### Task 0.3: Create source folder structure
+### Task 0.3: Create source folder structure ✅
 
 **Files:**
 - Create folders (Xcode groups AND on disk): `App`, `Document`, `Editor`, `Welcome`, `Preferences`, `Theme`, `Resources/Themes`

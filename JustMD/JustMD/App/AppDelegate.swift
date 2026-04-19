@@ -6,6 +6,8 @@
 //
 
 import Cocoa
+import cmark_gfm
+import Highlightr
 
 @main
 class AppDelegate: NSObject, NSApplicationDelegate {
