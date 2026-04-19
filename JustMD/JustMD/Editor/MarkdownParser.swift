@@ -103,6 +103,23 @@ nonisolated final class MarkdownParser: Sendable {
         cmark_parser_attach_syntax_extension(parser, ext)
     }
 
+    nonisolated private func nodeRange(
+        _ node: UnsafeMutablePointer<cmark_node>,
+        source: String,
+        offsets: ByteOffsetTable
+    ) -> NSRange {
+        let startLine = cmark_node_get_start_line(node)
+        let startCol = cmark_node_get_start_column(node)
+        let endLine = cmark_node_get_end_line(node)
+        let endCol = cmark_node_get_end_column(node)
+        let startByte = offsets.byteOffset(line: startLine, column: startCol)
+        // end_column is inclusive (1-based last byte), so +1 for half-open length.
+        let endByte = offsets.byteOffset(line: endLine, column: endCol) + 1
+        let startUTF16 = utf16Offset(byteOffset: startByte, in: source)
+        let endUTF16 = utf16Offset(byteOffset: endByte, in: source)
+        return NSRange(location: startUTF16, length: Swift.max(0, endUTF16 - startUTF16))
+    }
+
     private func headingBlock(
         from node: UnsafeMutablePointer<cmark_node>,
         source: String,
@@ -111,23 +128,11 @@ nonisolated final class MarkdownParser: Sendable {
         let level = Int(cmark_node_get_heading_level(node))
         guard level >= 1 else { return nil }
 
-        let startLine = cmark_node_get_start_line(node)
-        let startCol = cmark_node_get_start_column(node)
-        let endLine = cmark_node_get_end_line(node)
-        let endCol = cmark_node_get_end_column(node)
-
-        let startByte = offsets.byteOffset(line: startLine, column: startCol)
-        // end_column is inclusive (1-based last byte), so +1 for half-open length.
-        let endByteExclusive = offsets.byteOffset(line: endLine, column: endCol) + 1
-
-        let startUTF16: Int = utf16Offset(byteOffset: startByte, in: source)
-        let endUTF16: Int = utf16Offset(byteOffset: endByteExclusive, in: source)
-        let length: Int = Swift.max(0, endUTF16 - startUTF16)
-        let range = NSRange(location: startUTF16, length: length)
+        let range = nodeRange(node, source: source, offsets: offsets)
 
         // Marker: the hashes plus single trailing space (for non-empty ATX headings).
         let markerLength = level + 1
-        let markerRange = NSRange(location: startUTF16, length: markerLength)
+        let markerRange = NSRange(location: range.location, length: markerLength)
 
         return .heading(level: level, range: range, markerRange: markerRange)
     }
@@ -137,18 +142,8 @@ nonisolated final class MarkdownParser: Sendable {
         source: String,
         offsets: ByteOffsetTable
     ) -> Block? {
-        let startLine = cmark_node_get_start_line(node)
-        let startCol = cmark_node_get_start_column(node)
-        let endLine = cmark_node_get_end_line(node)
-        let endCol = cmark_node_get_end_column(node)
-
-        let startByte = offsets.byteOffset(line: startLine, column: startCol)
-        let endByteExclusive = offsets.byteOffset(line: endLine, column: endCol) + 1
-
-        let startUTF16 = utf16Offset(byteOffset: startByte, in: source)
-        let endUTF16 = utf16Offset(byteOffset: endByteExclusive, in: source)
-        let length = Swift.max(0, endUTF16 - startUTF16)
-        return .paragraph(range: NSRange(location: startUTF16, length: length))
+        let range = nodeRange(node, source: source, offsets: offsets)
+        return .paragraph(range: range)
     }
 
     private func thematicBreakBlock(
@@ -156,18 +151,8 @@ nonisolated final class MarkdownParser: Sendable {
         source: String,
         offsets: ByteOffsetTable
     ) -> Block? {
-        let startLine = cmark_node_get_start_line(node)
-        let startCol = cmark_node_get_start_column(node)
-        let endLine = cmark_node_get_end_line(node)
-        let endCol = cmark_node_get_end_column(node)
-
-        let startByte = offsets.byteOffset(line: startLine, column: startCol)
-        let endByteExclusive = offsets.byteOffset(line: endLine, column: endCol) + 1
-
-        let startUTF16 = utf16Offset(byteOffset: startByte, in: source)
-        let endUTF16 = utf16Offset(byteOffset: endByteExclusive, in: source)
-        let length = Swift.max(0, endUTF16 - startUTF16)
-        return .thematicBreak(range: NSRange(location: startUTF16, length: length))
+        let range = nodeRange(node, source: source, offsets: offsets)
+        return .thematicBreak(range: range)
     }
 
     /// Emits a `.codeBlock` only for fenced code blocks. Indented code blocks
