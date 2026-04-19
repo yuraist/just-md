@@ -3,6 +3,8 @@ import AppKit
 final class MarkdownDocument: NSDocument {
     var text: String = ""
 
+    static let didReloadNotification = Notification.Name("com.justmd.document.didReload")
+
     nonisolated override class var autosavesInPlace: Bool { true }
     nonisolated override class var preservesVersions: Bool { true }
 
@@ -12,6 +14,13 @@ final class MarkdownDocument: NSDocument {
         }
         MainActor.assumeIsolated {
             self.text = string
+        }
+        // Notify any open editor view to reload its storage from the new text.
+        // Post on the main queue so observers registered with a main-queue-
+        // isolated selector receive it there.
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            NotificationCenter.default.post(name: MarkdownDocument.didReloadNotification, object: self)
         }
     }
 
@@ -23,5 +32,32 @@ final class MarkdownDocument: NSDocument {
     override func makeWindowControllers() {
         let controller = MarkdownWindowController(document: self)
         self.addWindowController(controller)
+    }
+
+    // NSDocument conforms to NSFilePresenter automatically. `presentedItemDidChange`
+    // fires on an arbitrary queue; bounce to main before touching document state.
+    nonisolated override func presentedItemDidChange() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.handleExternalChange()
+        }
+    }
+
+    @MainActor
+    private func handleExternalChange() {
+        guard let url = self.fileURL else { return }
+        let typeName = self.fileType ?? "net.daringfireball.markdown"
+        if !self.isDocumentEdited {
+            try? self.revert(toContentsOf: url, ofType: typeName)
+            return
+        }
+        let alert = NSAlert()
+        alert.messageText = "File changed on disk"
+        alert.informativeText = "Revert to the disk version? You'll lose unsaved changes."
+        alert.addButton(withTitle: "Revert")
+        alert.addButton(withTitle: "Keep My Changes")
+        if alert.runModal() == .alertFirstButtonReturn {
+            try? self.revert(toContentsOf: url, ofType: typeName)
+        }
     }
 }
