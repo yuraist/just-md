@@ -159,6 +159,16 @@ struct SyntaxHighlighterTests {
         #expect(color != nil)
     }
 
+    @Test("markers get dimmed via secondary color")
+    func markersDimmed() {
+        let s = storage("**bold**")
+        let h = SyntaxHighlighter(parser: MarkdownParser())
+        let ctx = makeContext()
+        h.apply(to: s, context: ctx)
+        let opener = s.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor
+        #expect(opener == ctx.secondaryColor)
+    }
+
     @Test("fenced code block applies syntax highlighting")
     func fencedCodeBlockHighlighted() {
         let swiftSnippet = "func greet(name: String) -> String { return \"Hello, \\(name)!\" }"

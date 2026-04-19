@@ -53,7 +53,33 @@ nonisolated final class SyntaxHighlighter {
         for block in doc.blocks {
             applyBlock(block, source: source, storage: storage, context: context)
         }
+        // Dim all marker-tagged ranges with the secondary color. This makes the
+        // syntax characters (`#`, `*`, `_`, `~`, link URL, code fences, etc.)
+        // visible but visually recessive — similar to iA Writer. Replaces the
+        // previous layout-manager glyph-hiding approach, which was fragile and
+        // caused garbage characters on some renders.
+        storage.enumerateAttribute(MarkdownAttribute.marker, in: full, options: []) { value, range, _ in
+            guard value as? Bool == true else { return }
+            storage.addAttribute(.foregroundColor, value: context.secondaryColor, range: range)
+        }
         storage.endEditing()
+    }
+
+    // MARK: - Font trait helpers
+
+    /// Returns a font matching `base` with the given symbolic traits applied. Falls
+    /// back to `base` if the descriptor cannot produce a valid font.
+    private func font(_ base: NSFont, traits: NSFontDescriptor.SymbolicTraits) -> NSFont {
+        let descriptor = base.fontDescriptor.withSymbolicTraits(traits)
+        return NSFont(descriptor: descriptor, size: base.pointSize) ?? base
+    }
+
+    /// Adds `adding` traits to `base`'s existing traits (so combining bold + italic
+    /// works). Falls back to `base` if the descriptor cannot produce a valid font.
+    private func font(_ base: NSFont, addingTraits adding: NSFontDescriptor.SymbolicTraits) -> NSFont {
+        let combined = base.fontDescriptor.symbolicTraits.union(adding)
+        let descriptor = base.fontDescriptor.withSymbolicTraits(combined)
+        return NSFont(descriptor: descriptor, size: base.pointSize) ?? base
     }
 
     private func baseAttributes(_ ctx: HighlightContext) -> [NSAttributedString.Key: Any] {
@@ -65,7 +91,7 @@ nonisolated final class SyntaxHighlighter {
         case .heading(let level, let range, let markerRange):
             let size = context.baseFont.pointSize + CGFloat(max(0, 8 - level)) * 2
             let resized = NSFont(descriptor: context.baseFont.fontDescriptor, size: size) ?? context.baseFont
-            let bold = NSFontManager.shared.convert(resized, toHaveTrait: .boldFontMask)
+            let bold = font(resized, addingTraits: .bold)
             if NSMaxRange(range) <= storage.length {
                 storage.addAttribute(.font, value: bold, range: range)
             }
@@ -165,7 +191,7 @@ nonisolated final class SyntaxHighlighter {
         case .bold(let range, let markerRanges):
             guard let r = safe(range) else { return }
             if let currentFont = storage.attribute(.font, at: r.location, effectiveRange: nil) as? NSFont {
-                let bolded = NSFontManager.shared.convert(currentFont, toHaveTrait: .boldFontMask)
+                let bolded = font(currentFont, addingTraits: .bold)
                 storage.addAttribute(.font, value: bolded, range: r)
             }
             for m in markerRanges {
@@ -177,7 +203,7 @@ nonisolated final class SyntaxHighlighter {
         case .italic(let range, let markerRanges):
             guard let r = safe(range) else { return }
             if let currentFont = storage.attribute(.font, at: r.location, effectiveRange: nil) as? NSFont {
-                let italicized = NSFontManager.shared.convert(currentFont, toHaveTrait: .italicFontMask)
+                let italicized = font(currentFont, addingTraits: .italic)
                 storage.addAttribute(.font, value: italicized, range: r)
             }
             for m in markerRanges {
