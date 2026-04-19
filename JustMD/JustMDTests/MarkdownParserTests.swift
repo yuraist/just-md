@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import JustMD
 
@@ -37,5 +38,24 @@ struct MarkdownParserTests {
         let doc = parser.parse("---\n")
         #expect(doc.blocks.count == 1)
         if case .thematicBreak = doc.blocks[0] {} else { Issue.record("not thematicBreak") }
+    }
+
+    @Test("parses fenced code block with language")
+    func parsesFencedCodeBlock() {
+        let parser = MarkdownParser()
+        let source = "```swift\nlet x = 1\n```"
+        let doc = parser.parse(source)
+        #expect(doc.blocks.count == 1)
+        guard case let .codeBlock(language, range, contentRange, fenceRanges) = doc.blocks[0] else {
+            Issue.record("not codeBlock")
+            return
+        }
+        #expect(language == "swift")
+        #expect(fenceRanges.count == 2)
+        // contentRange should cover "let x = 1" (length 9)
+        let nsSource = source as NSString
+        #expect(nsSource.substring(with: contentRange) == "let x = 1")
+        // overall range covers the whole block
+        #expect(nsSource.substring(with: range) == source)
     }
 }

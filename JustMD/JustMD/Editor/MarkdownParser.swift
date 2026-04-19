@@ -85,6 +85,10 @@ nonisolated final class MarkdownParser: Sendable {
                 if let block = thematicBreakBlock(from: node, source: source, offsets: offsets) {
                     blocks.append(block)
                 }
+            case CMARK_NODE_CODE_BLOCK:
+                if let block = codeBlock(from: node, source: source, offsets: offsets) {
+                    blocks.append(block)
+                }
             default:
                 break
             }
@@ -164,6 +168,74 @@ nonisolated final class MarkdownParser: Sendable {
         let endUTF16 = utf16Offset(byteOffset: endByteExclusive, in: source)
         let length = Swift.max(0, endUTF16 - startUTF16)
         return .thematicBreak(range: NSRange(location: startUTF16, length: length))
+    }
+
+    /// Emits a `.codeBlock` only for fenced code blocks. Indented code blocks
+    /// are currently skipped (MVP); fenceRanges would be empty otherwise.
+    private func codeBlock(
+        from node: UnsafeMutablePointer<cmark_node>,
+        source: String,
+        offsets: ByteOffsetTable
+    ) -> Block? {
+        var fenceLength: Int32 = 0
+        var fenceOffset: Int32 = 0
+        var fenceChar: CChar = 0
+        let isFenced = cmark_node_get_fenced(node, &fenceLength, &fenceOffset, &fenceChar) != 0
+        guard isFenced else { return nil }
+
+        let startLine = Int(cmark_node_get_start_line(node))
+        let endLine = Int(cmark_node_get_end_line(node))
+
+        // Overall block range: opening-fence line start through closing-fence line end (excluding trailing \n).
+        let openFenceRange = lineRangeExcludingNewline(line: startLine, in: source, table: offsets)
+        let closeFenceRange = startLine == endLine
+            ? openFenceRange
+            : lineRangeExcludingNewline(line: endLine, in: source, table: offsets)
+        let overallStart = openFenceRange.location
+        let overallEnd = closeFenceRange.location + closeFenceRange.length
+        let range = NSRange(location: overallStart, length: Swift.max(0, overallEnd - overallStart))
+
+        // Content range: text between the two fence lines.
+        let contentRange: NSRange
+        if endLine <= startLine + 1 {
+            // No inner content line; zero-length range at end of opening fence.
+            let loc = openFenceRange.location + openFenceRange.length
+            contentRange = NSRange(location: loc, length: 0)
+        } else {
+            let firstContent = lineRangeExcludingNewline(line: startLine + 1, in: source, table: offsets)
+            let lastContent = lineRangeExcludingNewline(line: endLine - 1, in: source, table: offsets)
+            let contentStart = firstContent.location
+            let contentEnd = lastContent.location + lastContent.length
+            contentRange = NSRange(location: contentStart, length: Swift.max(0, contentEnd - contentStart))
+        }
+
+        // Language from fence info string (empty -> nil).
+        let language: String?
+        if let cstr = cmark_node_get_fence_info(node) {
+            let str = String(cString: cstr)
+            language = str.isEmpty ? nil : str
+        } else {
+            language = nil
+        }
+
+        let fenceRanges: [NSRange] = startLine == endLine ? [openFenceRange] : [openFenceRange, closeFenceRange]
+
+        return .codeBlock(language: language, range: range, contentRange: contentRange, fenceRanges: fenceRanges)
+    }
+
+    nonisolated private func lineRangeExcludingNewline(line: Int, in source: String, table: ByteOffsetTable) -> NSRange {
+        // line is 1-based
+        let lineIdx = line - 1
+        guard lineIdx >= 0 && lineIdx < table.lineStarts.count else {
+            return NSRange(location: source.utf16.count, length: 0)
+        }
+        let startByte = table.lineStarts[lineIdx]
+        let endByte = lineIdx + 1 < table.lineStarts.count
+            ? table.lineStarts[lineIdx + 1] - 1   // exclude the \n
+            : table.totalBytes
+        let startUTF16 = utf16Offset(byteOffset: startByte, in: source)
+        let endUTF16 = utf16Offset(byteOffset: endByte, in: source)
+        return NSRange(location: startUTF16, length: Swift.max(0, endUTF16 - startUTF16))
     }
 }
 
