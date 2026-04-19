@@ -1,0 +1,78 @@
+import Foundation
+
+/// Pure-logic helper for toggling markdown bold/italic delimiters around a selection.
+///
+/// Rules:
+/// - Empty selection inserts the paired delimiter and places the caret between them.
+/// - Non-empty selection whose contents start and end with the delimiter is unwrapped
+///   (delimiters stripped from the selected substring).
+/// - Non-empty selection that is immediately surrounded by the delimiter in the source
+///   is unwrapped by removing the surrounding delimiters from the source.
+/// - Otherwise the selected substring is wrapped in the delimiter and the new selection
+///   covers the original substring (without the newly added delimiters).
+nonisolated struct MarkdownFormatter {
+
+    enum Delimiter {
+        case bold    // **
+        case italic  // *
+
+        var string: String {
+            self == .bold ? "**" : "*"
+        }
+    }
+
+    struct WrapResult: Equatable {
+        let newString: String
+        let newSelection: NSRange
+    }
+
+    static func wrap(source: String, selection: NSRange, delimiter: Delimiter) -> WrapResult {
+        let ns = source as NSString
+        let delim = delimiter.string
+        let delimNS = delim as NSString
+        let delimLen = delimNS.length
+
+        // Empty selection: insert "<delim><delim>" and place caret between them.
+        if selection.length == 0 {
+            let insertion = delim + delim
+            let newString = ns.replacingCharacters(in: selection, with: insertion)
+            let caret = NSRange(location: selection.location + delimLen, length: 0)
+            return WrapResult(newString: newString, newSelection: caret)
+        }
+
+        let selectedText = ns.substring(with: selection)
+        let selectedNS = selectedText as NSString
+
+        // Case: selection already includes the delimiters on both sides.
+        if selectedNS.length >= delimLen * 2
+            && selectedNS.hasPrefix(delim)
+            && selectedNS.hasSuffix(delim) {
+            let innerRange = NSRange(location: delimLen, length: selectedNS.length - delimLen * 2)
+            let inner = selectedNS.substring(with: innerRange)
+            let newString = ns.replacingCharacters(in: selection, with: inner)
+            let newSelection = NSRange(location: selection.location, length: (inner as NSString).length)
+            return WrapResult(newString: newString, newSelection: newSelection)
+        }
+
+        // Case: selection is surrounded by the delimiters in the source (outside the selection).
+        if selection.location >= delimLen
+            && selection.location + selection.length + delimLen <= ns.length {
+            let prefixRange = NSRange(location: selection.location - delimLen, length: delimLen)
+            let suffixRange = NSRange(location: selection.location + selection.length, length: delimLen)
+            if ns.substring(with: prefixRange) == delim && ns.substring(with: suffixRange) == delim {
+                // Remove the surrounding delimiters.
+                let removeRange = NSRange(location: selection.location - delimLen,
+                                          length: selection.length + delimLen * 2)
+                let newString = ns.replacingCharacters(in: removeRange, with: selectedText)
+                let newSelection = NSRange(location: selection.location - delimLen, length: selection.length)
+                return WrapResult(newString: newString, newSelection: newSelection)
+            }
+        }
+
+        // Default: wrap the selection in the delimiter.
+        let wrapped = delim + selectedText + delim
+        let newString = ns.replacingCharacters(in: selection, with: wrapped)
+        let newSelection = NSRange(location: selection.location + delimLen, length: selection.length)
+        return WrapResult(newString: newString, newSelection: newSelection)
+    }
+}
