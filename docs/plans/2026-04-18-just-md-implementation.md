@@ -95,7 +95,9 @@ git commit -m "chore: scaffold source folder layout"
 
 ## Phase 1: Markdown parser wrapper (TDD)
 
-### Task 1.1: MarkdownParser basic structure with a failing test
+> **Status:** ✅ Phase complete (1.1 – 1.6). 19 tests green.
+
+### Task 1.1: MarkdownParser basic structure with a failing test ✅
 
 **Files:**
 - Create: `JustMD/JustMD/Editor/MarkdownParser.swift`
@@ -173,7 +175,7 @@ git add -A
 git commit -m "feat(parser): bootstrap MarkdownParser with empty parse"
 ```
 
-### Task 1.2: Parse headings
+### Task 1.2: Parse headings ✅
 
 **Step 1 — failing test:** Append to `MarkdownParserTests`:
 
@@ -204,7 +206,7 @@ git add -A
 git commit -m "feat(parser): emit Heading blocks with level and range"
 ```
 
-### Task 1.3: Parse paragraphs, HR, code blocks
+### Task 1.3: Parse paragraphs, HR, code blocks ✅
 
 Add three separate small tests + implementation passes, one per block type. Commit after each.
 
@@ -214,14 +216,14 @@ Add three separate small tests + implementation passes, one per block type. Comm
 
 Commit message per sub-task: `feat(parser): parse X`.
 
-### Task 1.4: Parse lists and task items
+### Task 1.4: Parse lists and task items ✅
 
 - Unordered and ordered lists.
 - Task-list GFM extension: `- [ ]` / `- [x]` → `ListItem.taskState` populated.
 
 Commit: `feat(parser): parse lists and task items`.
 
-### Task 1.5: Parse blockquotes, tables, inline HTML
+### Task 1.5: Parse blockquotes, tables, inline HTML ✅
 
 - `> quote` blocks.
 - GFM tables (pipe tables).
@@ -229,7 +231,7 @@ Commit: `feat(parser): parse lists and task items`.
 
 Commit: `feat(parser): parse quotes, tables, html blocks`.
 
-### Task 1.6: Inline span API
+### Task 1.6: Inline span API ✅
 
 Parsing inline spans (bold, italic, links, inline code, strike, images) is needed by the syntax highlighter. Add a separate method:
 
