@@ -126,4 +126,102 @@ struct MarkdownParserTests {
         #expect(doc.blocks.count == 1)
         if case .html = doc.blocks[0] {} else { Issue.record("not html") }
     }
+
+    // MARK: - Inline span extraction (Task 1.6)
+
+    @Test("extracts bold span from paragraph")
+    func extractsBold() {
+        let parser = MarkdownParser()
+        let source = "this is **bold** text"
+        let doc = parser.parse(source)
+        guard case .paragraph = doc.blocks[0] else { Issue.record("not paragraph"); return }
+        let spans = parser.inlineSpans(in: doc.blocks[0], source: source)
+        let nsSource = source as NSString
+        let bolds = spans.compactMap { span -> NSRange? in
+            if case let .bold(range, _) = span { return range } else { return nil }
+        }
+        #expect(bolds.count == 1)
+        #expect(nsSource.substring(with: bolds[0]) == "**bold**")
+    }
+
+    @Test("extracts italic span")
+    func extractsItalic() {
+        let parser = MarkdownParser()
+        let source = "*emph* word"
+        let doc = parser.parse(source)
+        let spans = parser.inlineSpans(in: doc.blocks[0], source: source)
+        let italics = spans.compactMap { span -> NSRange? in
+            if case let .italic(range, _) = span { return range } else { return nil }
+        }
+        #expect(italics.count == 1)
+        let nsSource = source as NSString
+        #expect(nsSource.substring(with: italics[0]) == "*emph*")
+    }
+
+    @Test("extracts inline code span")
+    func extractsInlineCode() {
+        let parser = MarkdownParser()
+        let source = "use `let x = 1` here"
+        let doc = parser.parse(source)
+        let spans = parser.inlineSpans(in: doc.blocks[0], source: source)
+        let codes = spans.compactMap { span -> NSRange? in
+            if case let .inlineCode(range, _) = span { return range } else { return nil }
+        }
+        #expect(codes.count == 1)
+        let nsSource = source as NSString
+        #expect(nsSource.substring(with: codes[0]) == "`let x = 1`")
+    }
+
+    @Test("extracts strikethrough span (GFM)")
+    func extractsStrike() {
+        let parser = MarkdownParser()
+        let source = "~~gone~~"
+        let doc = parser.parse(source)
+        let spans = parser.inlineSpans(in: doc.blocks[0], source: source)
+        let strikes = spans.compactMap { span -> NSRange? in
+            if case let .strike(range, _) = span { return range } else { return nil }
+        }
+        #expect(strikes.count == 1)
+        let nsSource = source as NSString
+        #expect(nsSource.substring(with: strikes[0]) == "~~gone~~")
+    }
+
+    @Test("extracts link with url")
+    func extractsLink() {
+        let parser = MarkdownParser()
+        let source = "see [Apple](https://apple.com) site"
+        let doc = parser.parse(source)
+        let spans = parser.inlineSpans(in: doc.blocks[0], source: source)
+        let links = spans.compactMap { span -> (NSRange, URL?)? in
+            if case let .link(range, _, _, url) = span { return (range, url) } else { return nil }
+        }
+        #expect(links.count == 1)
+        #expect(links[0].1?.absoluteString == "https://apple.com")
+        let nsSource = source as NSString
+        #expect(nsSource.substring(with: links[0].0) == "[Apple](https://apple.com)")
+    }
+
+    @Test("extracts image with url and alt")
+    func extractsImage() {
+        let parser = MarkdownParser()
+        let source = "![logo](pic.png)"
+        let doc = parser.parse(source)
+        let spans = parser.inlineSpans(in: doc.blocks[0], source: source)
+        let images = spans.compactMap { span -> (NSRange, URL?, String)? in
+            if case let .image(range, _, url, alt) = span { return (range, url, alt) } else { return nil }
+        }
+        #expect(images.count == 1)
+        #expect(images[0].2 == "logo")
+        #expect(images[0].1?.absoluteString == "pic.png")
+    }
+
+    @Test("no inline spans for code blocks")
+    func codeBlockHasNoSpans() {
+        let parser = MarkdownParser()
+        let source = "```\n**not bold**\n```"
+        let doc = parser.parse(source)
+        guard case .codeBlock = doc.blocks[0] else { Issue.record("not codeBlock"); return }
+        let spans = parser.inlineSpans(in: doc.blocks[0], source: source)
+        #expect(spans.isEmpty)
+    }
 }

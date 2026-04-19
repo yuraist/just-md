@@ -28,6 +28,15 @@ nonisolated enum TaskState: Sendable, Equatable {
     case checked
 }
 
+nonisolated enum InlineSpan: Sendable {
+    case bold(range: NSRange, markerRanges: [NSRange])
+    case italic(range: NSRange, markerRanges: [NSRange])
+    case strike(range: NSRange, markerRanges: [NSRange])
+    case inlineCode(range: NSRange, markerRanges: [NSRange])
+    case link(range: NSRange, urlRange: NSRange, markerRanges: [NSRange], url: URL?)
+    case image(range: NSRange, urlRange: NSRange, url: URL?, alt: String)
+}
+
 nonisolated final class MarkdownParser: Sendable {
     private static let extensionsRegistered: Void = {
         cmark_gfm_core_extensions_ensure_registered()
@@ -273,6 +282,326 @@ nonisolated final class MarkdownParser: Sendable {
         let fenceRanges: [NSRange] = startLine == endLine ? [openFenceRange] : [openFenceRange, closeFenceRange]
 
         return .codeBlock(language: language, range: range, contentRange: contentRange, fenceRanges: fenceRanges)
+    }
+
+    // MARK: - Inline spans
+
+    /// Extracts inline spans (bold, italic, strike, inlineCode, link, image) from a block's
+    /// content. Blocks without inline content (code blocks, thematic breaks, tables, html)
+    /// return an empty array. Ranges are in the coordinate space of the original `source`.
+    func inlineSpans(in block: Block, source: String) -> [InlineSpan] {
+        guard let blockRange = inlineRange(of: block), blockRange.length > 0 else {
+            return []
+        }
+        let nsSource = source as NSString
+        guard blockRange.location >= 0,
+              blockRange.location + blockRange.length <= nsSource.length else {
+            return []
+        }
+        let substring = nsSource.substring(with: blockRange)
+        guard !substring.isEmpty else { return [] }
+
+        let options = CMARK_OPT_DEFAULT
+        guard let parser = cmark_parser_new(options) else { return [] }
+        defer { cmark_parser_free(parser) }
+
+        attachExtension(to: parser, named: "table")
+        attachExtension(to: parser, named: "strikethrough")
+        attachExtension(to: parser, named: "tasklist")
+        attachExtension(to: parser, named: "autolink")
+
+        let subBytes = Array(substring.utf8)
+        subBytes.withUnsafeBufferPointer { buffer in
+            if let base = buffer.baseAddress {
+                base.withMemoryRebound(to: CChar.self, capacity: buffer.count) { cPtr in
+                    cmark_parser_feed(parser, cPtr, buffer.count)
+                }
+            }
+        }
+
+        guard let root = cmark_parser_finish(parser) else { return [] }
+        defer { cmark_node_free(root) }
+
+        let subOffsets = ByteOffsetTable(source: substring)
+        var spans: [InlineSpan] = []
+
+        // Find the first block-level node that can contain inlines (paragraph or heading).
+        var blockChild = cmark_node_first_child(root)
+        while let blockNode = blockChild {
+            let type = cmark_node_get_type(blockNode)
+            if type == CMARK_NODE_PARAGRAPH || type == CMARK_NODE_HEADING {
+                collectInlineSpans(
+                    parent: blockNode,
+                    substring: substring,
+                    subOffsets: subOffsets,
+                    shift: blockRange.location,
+                    into: &spans
+                )
+            }
+            blockChild = cmark_node_next(blockNode)
+        }
+
+        return spans
+    }
+
+    /// Returns the range within `source` whose content should be re-parsed for inline spans,
+    /// or nil if the block has no inline content.
+    private func inlineRange(of block: Block) -> NSRange? {
+        switch block {
+        case .paragraph(let range):
+            return range
+        case .heading(_, let range, _):
+            return range
+        case .blockQuote(let range):
+            return range
+        case .codeBlock, .thematicBreak, .table, .html, .list:
+            // Code blocks, thematic breaks, tables, html: no inline spans extracted here.
+            // Lists: inline spans live inside list items; callers should use paragraph blocks
+            //   produced elsewhere. For MVP we skip list-level span extraction.
+            return nil
+        }
+    }
+
+    private func collectInlineSpans(
+        parent: UnsafeMutablePointer<cmark_node>,
+        substring: String,
+        subOffsets: ByteOffsetTable,
+        shift: Int,
+        into spans: inout [InlineSpan]
+    ) {
+        var child = cmark_node_first_child(parent)
+        while let node = child {
+            let type = cmark_node_get_type(node)
+            let localRange = nodeRange(node, source: substring, offsets: subOffsets)
+            let shifted = NSRange(location: localRange.location + shift, length: localRange.length)
+
+            switch type {
+            case CMARK_NODE_STRONG:
+                let markers = pairedDelimiterMarkers(range: shifted, in: substring, shift: shift, maxLen: 2)
+                spans.append(.bold(range: shifted, markerRanges: markers))
+                // Recurse to catch nested spans.
+                collectInlineSpans(
+                    parent: node, substring: substring, subOffsets: subOffsets, shift: shift, into: &spans
+                )
+            case CMARK_NODE_EMPH:
+                let markers = pairedDelimiterMarkers(range: shifted, in: substring, shift: shift, maxLen: 1)
+                spans.append(.italic(range: shifted, markerRanges: markers))
+                collectInlineSpans(
+                    parent: node, substring: substring, subOffsets: subOffsets, shift: shift, into: &spans
+                )
+            case CMARK_NODE_CODE:
+                // cmark reports the inline code node range as the content only (excluding
+                // backticks). Expand outward to include the surrounding backtick runs.
+                let expanded = expandInlineCodeRange(content: shifted, in: substring, shift: shift)
+                let markers = backtickMarkers(range: expanded, in: substring, shift: shift)
+                spans.append(.inlineCode(range: expanded, markerRanges: markers))
+            case CMARK_NODE_LINK:
+                let (urlRange, markers) = linkMarkersAndUrlRange(range: shifted, in: substring, shift: shift)
+                let urlStr = cmark_node_get_url(node).map { String(cString: $0) } ?? ""
+                let url = urlStr.isEmpty ? nil : URL(string: urlStr)
+                spans.append(.link(range: shifted, urlRange: urlRange, markerRanges: markers, url: url))
+                collectInlineSpans(
+                    parent: node, substring: substring, subOffsets: subOffsets, shift: shift, into: &spans
+                )
+            case CMARK_NODE_IMAGE:
+                let (urlRange, _) = linkMarkersAndUrlRange(range: shifted, in: substring, shift: shift)
+                let urlStr = cmark_node_get_url(node).map { String(cString: $0) } ?? ""
+                let url = urlStr.isEmpty ? nil : URL(string: urlStr)
+                let alt = imageAltText(node: node)
+                spans.append(.image(range: shifted, urlRange: urlRange, url: url, alt: alt))
+            default:
+                // Strikethrough is a GFM extension; check type_string.
+                if let typeCStr = cmark_node_get_type_string(node),
+                   String(cString: typeCStr) == "strikethrough" {
+                    let markers = pairedDelimiterMarkers(range: shifted, in: substring, shift: shift, maxLen: 2)
+                    spans.append(.strike(range: shifted, markerRanges: markers))
+                    collectInlineSpans(
+                        parent: node, substring: substring, subOffsets: subOffsets, shift: shift, into: &spans
+                    )
+                }
+            }
+            child = cmark_node_next(node)
+        }
+    }
+
+    /// For strong/emph/strike: locate matching opening and closing delimiter runs in the
+    /// substring, returning their ranges in the original-source coordinate space.
+    /// `maxLen` is the delimiter length (1 for emph, 2 for strong/strike).
+    private func pairedDelimiterMarkers(
+        range shifted: NSRange,
+        in substring: String,
+        shift: Int,
+        maxLen: Int
+    ) -> [NSRange] {
+        // Translate shifted back to substring coordinates.
+        let localLoc = shifted.location - shift
+        let localEnd = localLoc + shifted.length
+        let utf16 = Array(substring.utf16)
+        guard localLoc >= 0, localEnd <= utf16.count, shifted.length >= maxLen * 2 else {
+            return []
+        }
+        // Opening: first `maxLen` UTF-16 code units.
+        let openRange = NSRange(location: shifted.location, length: maxLen)
+        // Closing: last `maxLen`.
+        let closeRange = NSRange(location: shifted.location + shifted.length - maxLen, length: maxLen)
+        return [openRange, closeRange]
+    }
+
+    /// cmark emits the content range for inline code (e.g. `let x = 1` for `` `let x = 1` ``).
+    /// Expand the range outward symmetrically to include the backtick delimiters.
+    private func expandInlineCodeRange(
+        content shifted: NSRange,
+        in substring: String,
+        shift: Int
+    ) -> NSRange {
+        let utf16 = Array(substring.utf16)
+        let backtick: UInt16 = 0x60
+        let contentStartLocal = shifted.location - shift
+        let contentEndLocal = contentStartLocal + shifted.length
+
+        var openLen = 0
+        var i = contentStartLocal - 1
+        while i >= 0 && utf16[i] == backtick {
+            openLen += 1
+            i -= 1
+        }
+        var closeLen = 0
+        var j = contentEndLocal
+        while j < utf16.count && utf16[j] == backtick {
+            closeLen += 1
+            j += 1
+        }
+        // Use the longer of the two sides to find a consistent delimiter length; pick the min.
+        // In practice cmark guarantees the two sides are equal.
+        let delimLen = Swift.min(openLen, closeLen)
+        guard delimLen > 0 else { return shifted }
+        let newLoc = shifted.location - delimLen
+        let newLen = shifted.length + delimLen * 2
+        return NSRange(location: newLoc, length: newLen)
+    }
+
+    /// For inline code: the opening and closing runs of backticks can each be 1+ chars. Scan.
+    private func backtickMarkers(
+        range shifted: NSRange,
+        in substring: String,
+        shift: Int
+    ) -> [NSRange] {
+        let localLoc = shifted.location - shift
+        let localEnd = localLoc + shifted.length
+        let utf16 = Array(substring.utf16)
+        guard localLoc >= 0, localEnd <= utf16.count else { return [] }
+
+        let backtick: UInt16 = 0x60 // `
+        var openLen = 0
+        var i = localLoc
+        while i < localEnd && utf16[i] == backtick {
+            openLen += 1
+            i += 1
+        }
+        var closeLen = 0
+        var j = localEnd - 1
+        while j >= localLoc && utf16[j] == backtick {
+            closeLen += 1
+            j -= 1
+        }
+        guard openLen > 0, closeLen > 0, openLen + closeLen <= shifted.length else { return [] }
+        let openRange = NSRange(location: shifted.location, length: openLen)
+        let closeRange = NSRange(location: shifted.location + shifted.length - closeLen, length: closeLen)
+        return [openRange, closeRange]
+    }
+
+    /// For links `[text](url)` and images `![alt](url)`: find the `[`, `]`, `(`, `)` markers
+    /// and the URL range (inside parentheses).
+    private func linkMarkersAndUrlRange(
+        range shifted: NSRange,
+        in substring: String,
+        shift: Int
+    ) -> (urlRange: NSRange, markers: [NSRange]) {
+        let localLoc = shifted.location - shift
+        let localEnd = localLoc + shifted.length
+        let utf16 = Array(substring.utf16)
+        guard localLoc >= 0, localEnd <= utf16.count, shifted.length >= 4 else {
+            return (NSRange(location: shifted.location, length: 0), [])
+        }
+
+        let lbracket: UInt16 = 0x5B // [
+        let rbracket: UInt16 = 0x5D // ]
+        let lparen: UInt16 = 0x28   // (
+        let rparen: UInt16 = 0x29   // )
+
+        // Opening `[` — for images it's after `!`; shifted.location points to `!` for images.
+        // Find the `[` at or after localLoc.
+        var openBracketLocal = -1
+        var k = localLoc
+        while k < localEnd {
+            if utf16[k] == lbracket { openBracketLocal = k; break }
+            k += 1
+        }
+
+        // Find the `](` pair by scanning from the end: `)` is last, preceded by URL, then `(`, then `]`.
+        var closeParenLocal = -1
+        if localEnd - 1 >= 0 && localEnd - 1 < utf16.count, utf16[localEnd - 1] == rparen {
+            closeParenLocal = localEnd - 1
+        }
+
+        // Scan backwards from closeParenLocal to find matching `(` at depth 0.
+        var openParenLocal = -1
+        if closeParenLocal > 0 {
+            var depth = 0
+            var i = closeParenLocal - 1
+            while i >= localLoc {
+                let c = utf16[i]
+                if c == rparen { depth += 1 }
+                else if c == lparen {
+                    if depth == 0 { openParenLocal = i; break }
+                    depth -= 1
+                }
+                i -= 1
+            }
+        }
+
+        // `]` is the character immediately before `(`.
+        var closeBracketLocal = -1
+        if openParenLocal > localLoc, utf16[openParenLocal - 1] == rbracket {
+            closeBracketLocal = openParenLocal - 1
+        }
+
+        guard openBracketLocal >= 0,
+              closeBracketLocal > openBracketLocal,
+              openParenLocal == closeBracketLocal + 1,
+              closeParenLocal > openParenLocal else {
+            return (NSRange(location: shifted.location, length: 0), [])
+        }
+
+        let urlStart = openParenLocal + 1
+        let urlLen = closeParenLocal - urlStart
+        let urlRange = NSRange(location: urlStart + shift, length: Swift.max(0, urlLen))
+
+        let markers = [
+            NSRange(location: openBracketLocal + shift, length: 1),
+            NSRange(location: closeBracketLocal + shift, length: 1),
+            NSRange(location: openParenLocal + shift, length: 1),
+            NSRange(location: closeParenLocal + shift, length: 1),
+        ]
+        return (urlRange, markers)
+    }
+
+    /// Concatenate text-node content across the image node's children to produce alt text.
+    private func imageAltText(node: UnsafeMutablePointer<cmark_node>) -> String {
+        var alt = ""
+        var child = cmark_node_first_child(node)
+        while let c = child {
+            if cmark_node_get_type(c) == CMARK_NODE_TEXT {
+                if let cstr = cmark_node_get_literal(c) {
+                    alt += String(cString: cstr)
+                }
+            } else {
+                // Recurse into nested inline structure (e.g. emph inside alt).
+                alt += imageAltText(node: c)
+            }
+            child = cmark_node_next(c)
+        }
+        return alt
     }
 
     nonisolated private func lineRangeExcludingNewline(line: Int, in source: String, table: ByteOffsetTable) -> NSRange {
