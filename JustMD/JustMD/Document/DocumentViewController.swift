@@ -38,9 +38,12 @@ final class DocumentViewController: NSViewController {
 
         scroll.documentView = textView
 
-        // Load document text into storage.
+        // Load document text into storage. Apply highlighting synchronously so
+        // the file renders fully styled on first paint — the 200ms debounce
+        // would otherwise cause a visible blank flash on open.
         if !document.text.isEmpty {
             storage.replaceCharacters(in: NSRange(location: 0, length: 0), with: document.text)
+            storage.applyHighlightingNow()
         }
 
         // Forward storage edits back to document.text + change count.

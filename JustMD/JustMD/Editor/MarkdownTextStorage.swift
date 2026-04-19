@@ -6,6 +6,13 @@ nonisolated final class MarkdownTextStorage: NSTextStorage {
     var highlighter: SyntaxHighlighter?
     var highlightContext: HighlightContext?
 
+    private var pendingHighlight: DispatchWorkItem?
+    /// Highlight runs on the main queue because `HighlightContext` holds `NSColor`
+    /// values that resolve via `NSAppearance`, which must be touched from the main
+    /// thread. The storage itself is `nonisolated` so the Swift 6 compiler
+    /// accepts `self` captures from a `DispatchWorkItem`.
+    private let highlightQueue = DispatchQueue.main
+    private static let debounceInterval: DispatchTimeInterval = .milliseconds(200)
     private var isHighlighting = false
 
     override var string: String { backing.string }
@@ -30,12 +37,32 @@ nonisolated final class MarkdownTextStorage: NSTextStorage {
 
     override func processEditing() {
         super.processEditing()
+        guard !isHighlighting, highlighter != nil, highlightContext != nil else { return }
+        scheduleHighlight()
+    }
+
+    private func scheduleHighlight() {
+        pendingHighlight?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            self?.runHighlight()
+        }
+        pendingHighlight = work
+        highlightQueue.asyncAfter(deadline: .now() + Self.debounceInterval, execute: work)
+    }
+
+    private func runHighlight() {
         guard let highlighter, let highlightContext else { return }
-        // Avoid recursion: highlighter.apply wraps changes in beginEditing/endEditing
-        // which triggers processEditing again. Guard flag prevents infinite recursion.
-        if isHighlighting { return }
+        guard !isHighlighting else { return }
         isHighlighting = true
         highlighter.apply(to: self, context: highlightContext)
         isHighlighting = false
+    }
+
+    /// Apply highlighting synchronously. Used on initial load to avoid a blank
+    /// flash while the 200ms debounce window elapses.
+    func applyHighlightingNow() {
+        pendingHighlight?.cancel()
+        pendingHighlight = nil
+        runHighlight()
     }
 }

@@ -29,7 +29,8 @@ struct MarkdownTextStorageTests {
         storage.highlighter = highlighter
         storage.highlightContext = context
         storage.replaceCharacters(in: NSRange(location: 0, length: 0), with: "# Hello")
-        // After insert, processEditing fires once, highlighting applies.
+        // Highlighting is debounced; force it synchronously for the assertion.
+        storage.applyHighlightingNow()
         let attrs = storage.attributes(at: 3, effectiveRange: nil)
         let font = attrs[.font] as? NSFont
         #expect(font != nil)
@@ -55,6 +56,7 @@ struct MarkdownTextStorageTests {
         storage.highlightContext = context
         // If recursion isn't guarded, this insert would crash with stack overflow or infinite loop.
         storage.replaceCharacters(in: NSRange(location: 0, length: 0), with: "Hello *world*")
+        storage.applyHighlightingNow()
         #expect(storage.length == 13)
     }
 }
