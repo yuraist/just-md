@@ -665,7 +665,9 @@ Commit or skip with a note in the plan.
 
 ## Phase 5: Code block highlighting
 
-### Task 5.1: CodeBlockHighlighter wrapper
+> **Status:** ✅ Phase complete (5.1, 5.2). 55 tests green.
+
+### Task 5.1: CodeBlockHighlighter wrapper ✅
 
 **Files:**
 - Create: `JustMD/JustMD/Editor/CodeBlockHighlighter.swift`
@@ -698,7 +700,7 @@ Test: `highlight("let x = 1", language: "swift")` returns non-nil `NSAttributedS
 
 Commit.
 
-### Task 5.2: Apply code-block highlighting in SyntaxHighlighter
+### Task 5.2: Apply code-block highlighting in SyntaxHighlighter ✅
 
 In `applyBlock` for `.codeBlock(let lang, let range, let contentRange, let fenceRanges)`:
 1. Run `CodeBlockHighlighter.highlight(source[contentRange], language: lang)`.
