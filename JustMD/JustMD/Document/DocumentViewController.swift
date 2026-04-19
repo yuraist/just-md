@@ -15,6 +15,15 @@ final class DocumentViewController: NSViewController {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    private var appearanceObservation: NSKeyValueObservation?
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+        // NSKeyValueObservation auto-invalidates on deallocation; no manual
+        // invalidate() call here because Swift 6 treats the deinit as
+        // nonisolated and can't touch main-actor properties.
+    }
+
     override func loadView() {
         let scroll = NSScrollView(frame: NSRect(x: 0, y: 0, width: 800, height: 600))
         scroll.hasVerticalScroller = true
@@ -52,6 +61,98 @@ final class DocumentViewController: NSViewController {
         self.textView = textView
         self.scrollView = scroll
         self.view = scroll
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(preferencesDidChange),
+            name: PreferencesStore.didChangeNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(documentDidReload(_:)),
+            name: MarkdownDocument.didReloadNotification,
+            object: document
+        )
+        // Re-render when the effective appearance flips (system dark-mode toggle
+        // or user-chosen "Follow System"). KVO is the simplest path because
+        // `viewDidChangeEffectiveAppearance` is declared on `NSView`, not on
+        // `NSViewController`.
+        appearanceObservation = textView.observe(\.effectiveAppearance, options: [.new]) { [weak self] _, _ in
+            Task { @MainActor in
+                self?.rebuildContext()
+            }
+        }
+
+        rebuildContext()
+    }
+
+    @objc private func preferencesDidChange() {
+        rebuildContext()
+    }
+
+    @objc private func documentDidReload(_ note: Notification) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let newText = self.document.text
+            let currentLen = self.storage.length
+            // Avoid notifying the storage delegate recursively — the storage
+            // will post an editedCharacters event that funnels back through
+            // NSTextStorageDelegate and would re-set document.text to the same
+            // value it just got from disk. That's a no-op, but still noisy.
+            self.storage.replaceCharacters(
+                in: NSRange(location: 0, length: currentLen),
+                with: newText
+            )
+            self.storage.applyHighlightingNow()
+        }
+    }
+
+    private func rebuildContext() {
+        let prefs = PreferencesStore.shared
+        let themeStore = ThemeStore()
+        let theme = themeStore.loadAll().first(where: { $0.id == prefs.themeId })
+            ?? BuiltinThemes.all.first
+            ?? BuiltinThemes.all.first!
+        let palette = activePalette(for: theme)
+
+        let size = CGFloat(prefs.fontSize)
+        let baseFont = PreferencesStore.nsFont(family: prefs.fontFamily, size: size)
+        let codeFont = PreferencesStore.nsFont(family: .mono, size: max(10, size * 0.92))
+
+        storage.highlightContext = HighlightContext(
+            baseFont: baseFont,
+            textColor: NSColor.fromHex(palette.text) ?? .labelColor,
+            secondaryColor: NSColor.fromHex(palette.secondary) ?? .secondaryLabelColor,
+            accentColor: NSColor.fromHex(palette.accent) ?? .controlAccentColor,
+            codeFont: codeFont,
+            codeBackground: NSColor.fromHex(palette.codeBackground) ?? NSColor(white: 0.95, alpha: 1)
+        )
+        if let bg = NSColor.fromHex(palette.background) {
+            textView?.backgroundColor = bg
+            scrollView?.backgroundColor = bg
+        }
+        if let accent = NSColor.fromHex(palette.accent) {
+            textView?.linkTextAttributes = [
+                .foregroundColor: accent,
+                .underlineStyle: 0
+            ]
+        }
+        if let selection = NSColor.fromHex(palette.selection) {
+            textView?.selectedTextAttributes = [
+                .backgroundColor: selection
+            ]
+        }
+        storage.applyHighlightingNow()
+    }
+
+    private func activePalette(for theme: Theme) -> Palette {
+        if theme.id == "builtin.followSystem" {
+            let match = view.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua])
+            let isDark = match == .darkAqua
+            return isDark ? (theme.dark ?? theme.light) : theme.light
+        }
+        return theme.light
     }
 
     private func makeContext() -> HighlightContext {
