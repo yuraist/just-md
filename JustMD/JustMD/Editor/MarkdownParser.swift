@@ -2,11 +2,11 @@ import Foundation
 import cmark_gfm
 import cmark_gfm_extensions
 
-nonisolated struct MarkdownDocument {
+nonisolated struct MarkdownDocument: Sendable {
     let blocks: [Block]
 }
 
-nonisolated enum Block {
+nonisolated enum Block: Sendable {
     case paragraph(range: NSRange)
     case heading(level: Int, range: NSRange, markerRange: NSRange)
     case codeBlock(language: String?, range: NSRange, contentRange: NSRange, fenceRanges: [NSRange])
@@ -17,18 +17,18 @@ nonisolated enum Block {
     case html(range: NSRange)
 }
 
-nonisolated struct ListItem {
+nonisolated struct ListItem: Sendable {
     let range: NSRange
     let markerRange: NSRange
     let taskState: TaskState?
 }
 
-nonisolated enum TaskState {
+nonisolated enum TaskState: Sendable {
     case unchecked
     case checked
 }
 
-nonisolated final class MarkdownParser {
+nonisolated final class MarkdownParser: Sendable {
     private static let extensionsRegistered: Void = {
         cmark_gfm_core_extensions_ensure_registered()
     }()
