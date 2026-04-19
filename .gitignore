@@ -42,5 +42,5 @@ fastlane/test_output
 # Playgrounds
 timeline.xctimeline
 playground.xcworkspace
-.claude/settings.local.json
+.claude/
 JustMD/JustMD.xcodeproj/project.xcworkspace/xcuserdata
