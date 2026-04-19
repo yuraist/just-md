@@ -2,7 +2,7 @@ import Foundation
 import cmark_gfm
 import cmark_gfm_extensions
 
-nonisolated struct MarkdownDocument: Sendable {
+nonisolated struct ParsedMarkdown: Sendable {
     let blocks: [Block]
 }
 
@@ -46,14 +46,14 @@ nonisolated final class MarkdownParser: Sendable {
         _ = MarkdownParser.extensionsRegistered
     }
 
-    func parse(_ source: String) -> MarkdownDocument {
+    func parse(_ source: String) -> ParsedMarkdown {
         guard !source.isEmpty else {
-            return MarkdownDocument(blocks: [])
+            return ParsedMarkdown(blocks: [])
         }
 
         let options = CMARK_OPT_DEFAULT
         guard let parser = cmark_parser_new(options) else {
-            return MarkdownDocument(blocks: [])
+            return ParsedMarkdown(blocks: [])
         }
         defer { cmark_parser_free(parser) }
 
@@ -72,7 +72,7 @@ nonisolated final class MarkdownParser: Sendable {
         }
 
         guard let root = cmark_parser_finish(parser) else {
-            return MarkdownDocument(blocks: [])
+            return ParsedMarkdown(blocks: [])
         }
         defer { cmark_node_free(root) }
 
@@ -115,7 +115,7 @@ nonisolated final class MarkdownParser: Sendable {
             child = cmark_node_next(node)
         }
 
-        return MarkdownDocument(blocks: blocks)
+        return ParsedMarkdown(blocks: blocks)
     }
 
     private func attachExtension(to parser: UnsafeMutablePointer<cmark_parser>, named name: String) {
