@@ -12,6 +12,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         installFormatMenu()
+        installShowWelcomeMenuItem()
+
+        // Show welcome window on launch if no documents are being opened.
+        // NSDocumentController.openDocument may already be in flight from a "Open Recent" / file association.
+        // Use a delayed check so doc-opening machinery has run first.
+        DispatchQueue.main.async {
+            if NSDocumentController.shared.documents.isEmpty {
+                WelcomeWindowController.shared.showWindow(self)
+            }
+        }
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
@@ -22,11 +32,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
+    func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool {
+        return false
+    }
+
+    func applicationOpenUntitledFile(_ sender: NSApplication) -> Bool {
+        // System asks us to open an untitled doc (e.g. dock icon click with no windows).
+        // Show welcome instead.
+        WelcomeWindowController.shared.showWindow(self)
+        return true
+    }
+
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
         return true
     }
 
-    // MARK: - Menu
+    // MARK: - Menus
 
     private func installFormatMenu() {
         guard let mainMenu = NSApp.mainMenu else { return }
@@ -56,5 +77,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Insert after Edit (standard layout: app, File, Edit, ...).
         let editIndex = mainMenu.items.firstIndex { $0.title == "Edit" } ?? 2
         mainMenu.insertItem(formatItem, at: editIndex + 1)
+    }
+
+    private func installShowWelcomeMenuItem() {
+        guard let mainMenu = NSApp.mainMenu else { return }
+        guard let fileMenu = mainMenu.items.first(where: { $0.title == "File" })?.submenu else { return }
+        // Check if already installed.
+        if fileMenu.items.contains(where: { $0.title == "Show Welcome Window" }) { return }
+        let item = NSMenuItem(title: "Show Welcome Window",
+                              action: #selector(showWelcome(_:)),
+                              keyEquivalent: "w")
+        item.keyEquivalentModifierMask = [.command, .control]
+        item.target = self
+        fileMenu.addItem(NSMenuItem.separator())
+        fileMenu.addItem(item)
+    }
+
+    @objc func showWelcome(_ sender: Any?) {
+        WelcomeWindowController.shared.showWindow(sender)
     }
 }
