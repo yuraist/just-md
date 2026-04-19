@@ -518,7 +518,9 @@ No commit needed — just verification.
 
 ## Phase 4: Text storage + syntax highlighting core
 
-### Task 4.1: MarkdownTextStorage stub
+> **Status:** ✅ Phase complete (4.1 – 4.4). 4.5 (incremental re-parse) deferred — measure first. 51 tests green.
+
+### Task 4.1: MarkdownTextStorage stub ✅
 
 **Files:**
 - Create: `JustMD/JustMD/Editor/MarkdownTextStorage.swift`
@@ -570,7 +572,7 @@ final class MarkdownTextStorage: NSTextStorage {
 
 **Step 4 — commit:** `feat(editor): MarkdownTextStorage backing NSMutableAttributedString`.
 
-### Task 4.2: SyntaxHighlighter — heading attributes
+### Task 4.2: SyntaxHighlighter — heading attributes ✅
 
 **Files:**
 - Create: `JustMD/JustMD/Editor/SyntaxHighlighter.swift`
@@ -626,7 +628,7 @@ enum MarkdownAttribute {
 
 Proceed block-by-block (paragraphs are no-op, code blocks → mono, blockquotes → secondary color, hr → separator paragraph style, lists → hanging indent, tables → mono alignment). One sub-commit per block type. Add tests per block.
 
-### Task 4.3: Apply inline spans
+### Task 4.3: Apply inline spans ✅
 
 Iterate inline spans for each paragraph/heading block and apply:
 - bold → bold font
@@ -638,7 +640,7 @@ Iterate inline spans for each paragraph/heading block and apply:
 
 Tests per span type. Commits per span type.
 
-### Task 4.4: Wire SyntaxHighlighter into MarkdownTextStorage
+### Task 4.4: Wire SyntaxHighlighter into MarkdownTextStorage ✅
 
 Override `processEditing`:
 
