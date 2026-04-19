@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		BEC5A13E2F94E40D008208B6 /* cmark-gfm in Frameworks */ = {isa = PBXBuildFile; productRef = BEC5A13D2F94E40D008208B6 /* cmark-gfm */; };
+		BEC5A1402F94E40D008208B6 /* cmark-gfm-extensions in Frameworks */ = {isa = PBXBuildFile; productRef = BEC5A13F2F94E40D008208B6 /* cmark-gfm-extensions */; };
+		BEC5A1432F94E42F008208B6 /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = BEC5A1422F94E42F008208B6 /* Highlightr */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		BEC5A1202F93E202008208B6 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +58,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BEC5A1402F94E40D008208B6 /* cmark-gfm-extensions in Frameworks */,
+				BEC5A1432F94E42F008208B6 /* Highlightr in Frameworks */,
+				BEC5A13E2F94E40D008208B6 /* cmark-gfm in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +121,9 @@
 			);
 			name = JustMD;
 			packageProductDependencies = (
+				BEC5A13D2F94E40D008208B6 /* cmark-gfm */,
+				BEC5A13F2F94E40D008208B6 /* cmark-gfm-extensions */,
+				BEC5A1422F94E42F008208B6 /* Highlightr */,
 			);
 			productName = JustMD;
 			productReference = BEC5A1112F93E200008208B6 /* JustMD.app */;
@@ -195,6 +207,10 @@
 			);
 			mainGroup = BEC5A1082F93E200008208B6;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				BEC5A13C2F94E40D008208B6 /* XCRemoteSwiftPackageReference "swift-cmark" */,
+				BEC5A1412F94E42F008208B6 /* XCRemoteSwiftPackageReference "Highlightr" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BEC5A1122F93E200008208B6 /* Products */;
 			projectDirPath = "";
@@ -599,6 +615,43 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BEC5A13C2F94E40D008208B6 /* XCRemoteSwiftPackageReference "swift-cmark" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/swiftlang/swift-cmark";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.7.1;
+			};
+		};
+		BEC5A1412F94E42F008208B6 /* XCRemoteSwiftPackageReference "Highlightr" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/raspu/Highlightr";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.3.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BEC5A13D2F94E40D008208B6 /* cmark-gfm */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BEC5A13C2F94E40D008208B6 /* XCRemoteSwiftPackageReference "swift-cmark" */;
+			productName = "cmark-gfm";
+		};
+		BEC5A13F2F94E40D008208B6 /* cmark-gfm-extensions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BEC5A13C2F94E40D008208B6 /* XCRemoteSwiftPackageReference "swift-cmark" */;
+			productName = "cmark-gfm-extensions";
+		};
+		BEC5A1422F94E42F008208B6 /* Highlightr */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BEC5A1412F94E42F008208B6 /* XCRemoteSwiftPackageReference "Highlightr" */;
+			productName = Highlightr;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = BEC5A1092F93E200008208B6 /* Project object */;
 }
