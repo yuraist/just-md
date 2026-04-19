@@ -75,6 +75,18 @@ Tracking debt accumulated while shipping MVP. Each phase introduced something we
 
 ---
 
+## Phase 10 — Polish
+
+### Issue 10-A: Inline images not rendered (Phase 10)
+
+`![alt](path.png)` syntax is parsed (parser emits `.image` span) but not rendered as inline images in the editor. Markdown text shows as raw with marker dimming.
+
+**Why deferred:** Proper inline image rendering requires character substitution — replacing the markdown span with a single NSTextAttachment containing the image. Doing this without mutating the source string requires either a custom layout fragment (TextKit 2) or a delegate-based approach. Both are non-trivial and weren't blockers for MVP.
+
+**Approach to try:** Convert image markdown range into a contiguous "attachment region" via custom layout manager — replace the entire range with a single attachment glyph at render time, restore source on save.
+
+---
+
 ## How we'll address these
 
 After we finish a complete pass through the MVP scope (Phases 7-10), we'll create a **"v0.2 polish"** plan that prioritizes these issues:
