@@ -911,7 +911,9 @@ Smoke test: open file, select word, `Cmd+B` → wrapped; `Cmd+B` again → unwra
 
 ## Phase 8: Welcome window
 
-### Task 8.1: WelcomeWindow SwiftUI view
+> **Status:** ✅ Phase complete (8.1, 8.2, 8.3). 68 tests green.
+
+### Task 8.1: WelcomeWindow SwiftUI view ✅
 
 **Files:**
 - Create: `JustMD/JustMD/Welcome/WelcomeView.swift`
@@ -952,7 +954,7 @@ struct WelcomeView: View {
 
 Wrap in `WelcomeWindowController: NSWindowController` that hosts the SwiftUI view via `NSHostingView`.
 
-### Task 8.2: Wire up actions
+### Task 8.2: Wire up actions ✅
 
 `onNew` →
 ```swift
@@ -971,7 +973,7 @@ panel.begin { response in
 
 `onOpenURL(url)` → `NSDocumentController.shared.openDocument(withContentsOf: url, display: true)`.
 
-### Task 8.3: AppDelegate — show welcome on empty launch
+### Task 8.3: AppDelegate — show welcome on empty launch ✅
 
 ```swift
 func applicationDidFinishLaunching(_ aNotification: Notification) {
