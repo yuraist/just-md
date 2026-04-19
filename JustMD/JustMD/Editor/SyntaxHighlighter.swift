@@ -107,5 +107,93 @@ nonisolated final class SyntaxHighlighter {
         case .html:
             break
         }
+
+        // Apply inline spans for blocks that contain inline content.
+        switch block {
+        case .heading, .paragraph, .blockQuote:
+            applyInlineSpans(in: block, source: source, storage: storage, context: context)
+        default:
+            break
+        }
+    }
+
+    private func applyInlineSpans(in block: Block, source: String, storage: NSTextStorage, context: HighlightContext) {
+        let spans = parser.inlineSpans(in: block, source: source)
+        for span in spans {
+            applySpan(span, storage: storage, context: context)
+        }
+    }
+
+    private func applySpan(_ span: InlineSpan, storage: NSTextStorage, context: HighlightContext) {
+        let storageLength = storage.length
+        func safe(_ range: NSRange) -> NSRange? {
+            guard range.location >= 0, NSMaxRange(range) <= storageLength else { return nil }
+            return range
+        }
+
+        switch span {
+        case .bold(let range, let markerRanges):
+            guard let r = safe(range) else { return }
+            if let currentFont = storage.attribute(.font, at: r.location, effectiveRange: nil) as? NSFont {
+                let bolded = NSFontManager.shared.convert(currentFont, toHaveTrait: .boldFontMask)
+                storage.addAttribute(.font, value: bolded, range: r)
+            }
+            for m in markerRanges {
+                if let mr = safe(m) {
+                    storage.addAttribute(MarkdownAttribute.marker, value: true, range: mr)
+                }
+            }
+
+        case .italic(let range, let markerRanges):
+            guard let r = safe(range) else { return }
+            if let currentFont = storage.attribute(.font, at: r.location, effectiveRange: nil) as? NSFont {
+                let italicized = NSFontManager.shared.convert(currentFont, toHaveTrait: .italicFontMask)
+                storage.addAttribute(.font, value: italicized, range: r)
+            }
+            for m in markerRanges {
+                if let mr = safe(m) {
+                    storage.addAttribute(MarkdownAttribute.marker, value: true, range: mr)
+                }
+            }
+
+        case .strike(let range, let markerRanges):
+            guard let r = safe(range) else { return }
+            storage.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: r)
+            for m in markerRanges {
+                if let mr = safe(m) {
+                    storage.addAttribute(MarkdownAttribute.marker, value: true, range: mr)
+                }
+            }
+
+        case .inlineCode(let range, let markerRanges):
+            guard let r = safe(range) else { return }
+            storage.addAttribute(.font, value: context.codeFont, range: r)
+            storage.addAttribute(.backgroundColor, value: context.codeBackground, range: r)
+            for m in markerRanges {
+                if let mr = safe(m) {
+                    storage.addAttribute(MarkdownAttribute.marker, value: true, range: mr)
+                }
+            }
+
+        case .link(let range, let urlRange, let markerRanges, let url):
+            guard let r = safe(range) else { return }
+            if let url, let ur = safe(urlRange) {
+                storage.addAttribute(.link, value: url, range: r)
+                storage.addAttribute(.foregroundColor, value: context.accentColor, range: r)
+                storage.addAttribute(MarkdownAttribute.marker, value: true, range: ur)
+            } else {
+                storage.addAttribute(.foregroundColor, value: context.accentColor, range: r)
+            }
+            for m in markerRanges {
+                if let mr = safe(m) {
+                    storage.addAttribute(MarkdownAttribute.marker, value: true, range: mr)
+                }
+            }
+
+        case .image(let range, _, _, _):
+            guard let r = safe(range) else { return }
+            // Placeholder until Task 10.4 attaches NSTextAttachment.
+            storage.addAttribute(MarkdownAttribute.marker, value: true, range: r)
+        }
     }
 }

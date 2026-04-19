@@ -86,4 +86,67 @@ struct SyntaxHighlighterTests {
         let isMarker = s.attribute(MarkdownAttribute.marker, at: 0, effectiveRange: nil) as? Bool
         #expect(isMarker == true)
     }
+
+    @Test("bold span gets bold font")
+    func boldSpan() {
+        let s = storage("hello **world**")
+        let h = SyntaxHighlighter(parser: MarkdownParser())
+        h.apply(to: s, context: makeContext())
+        let attrs = s.attributes(at: 9, effectiveRange: nil)
+        let font = attrs[.font] as? NSFont
+        #expect(font?.fontDescriptor.symbolicTraits.contains(.bold) == true)
+    }
+
+    @Test("bold markers tagged as marker")
+    func boldMarker() {
+        let s = storage("**x**")
+        let h = SyntaxHighlighter(parser: MarkdownParser())
+        h.apply(to: s, context: makeContext())
+        let opener = s.attribute(MarkdownAttribute.marker, at: 0, effectiveRange: nil) as? Bool
+        let closer = s.attribute(MarkdownAttribute.marker, at: 3, effectiveRange: nil) as? Bool
+        #expect(opener == true)
+        #expect(closer == true)
+    }
+
+    @Test("italic span gets italic font")
+    func italicSpan() {
+        let s = storage("a *b* c")
+        let h = SyntaxHighlighter(parser: MarkdownParser())
+        h.apply(to: s, context: makeContext())
+        let attrs = s.attributes(at: 3, effectiveRange: nil)
+        let font = attrs[.font] as? NSFont
+        #expect(font?.fontDescriptor.symbolicTraits.contains(.italic) == true)
+    }
+
+    @Test("strike span gets strikethrough")
+    func strikeSpan() {
+        let s = storage("~~done~~")
+        let h = SyntaxHighlighter(parser: MarkdownParser())
+        h.apply(to: s, context: makeContext())
+        let attrs = s.attributes(at: 3, effectiveRange: nil)
+        let strike = attrs[.strikethroughStyle] as? Int
+        #expect(strike == NSUnderlineStyle.single.rawValue)
+    }
+
+    @Test("inline code span gets mono font")
+    func inlineCodeSpan() {
+        let s = storage("x `code` y")
+        let h = SyntaxHighlighter(parser: MarkdownParser())
+        h.apply(to: s, context: makeContext())
+        let attrs = s.attributes(at: 4, effectiveRange: nil)
+        let font = attrs[.font] as? NSFont
+        #expect(font?.fontDescriptor.symbolicTraits.contains(.monoSpace) == true)
+    }
+
+    @Test("link span gets accent color and link attribute")
+    func linkSpan() {
+        let s = storage("see [Apple](https://apple.com)")
+        let h = SyntaxHighlighter(parser: MarkdownParser())
+        h.apply(to: s, context: makeContext())
+        let attrs = s.attributes(at: 5, effectiveRange: nil)
+        let url = attrs[.link] as? URL
+        #expect(url?.absoluteString == "https://apple.com")
+        let color = attrs[.foregroundColor] as? NSColor
+        #expect(color != nil)
+    }
 }
