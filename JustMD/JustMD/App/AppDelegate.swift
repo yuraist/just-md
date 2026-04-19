@@ -13,6 +13,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         installFormatMenu()
         installShowWelcomeMenuItem()
+        wirePreferencesMenuItem()
 
         // Show welcome window on launch if no documents are being opened.
         // NSDocumentController.openDocument may already be in flight from a "Open Recent" / file association.
@@ -95,5 +96,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func showWelcome(_ sender: Any?) {
         WelcomeWindowController.shared.showWindow(sender)
+    }
+
+    @objc func showPreferences(_ sender: Any?) {
+        PreferencesWindowController.shared.showWindow(sender)
+    }
+
+    private func wirePreferencesMenuItem() {
+        guard let mainMenu = NSApp.mainMenu else { return }
+        guard let appSubmenu = mainMenu.items.first?.submenu else { return }
+        let titles: Set<String> = ["Preferences…", "Settings…", "Preferences...", "Settings..."]
+        guard let item = appSubmenu.items.first(where: { titles.contains($0.title) }) else { return }
+        item.target = self
+        item.action = #selector(showPreferences(_:))
     }
 }
