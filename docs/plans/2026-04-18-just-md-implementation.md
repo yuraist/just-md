@@ -256,7 +256,9 @@ Commit: `feat(parser): expose inline span extraction`.
 
 ## Phase 2: Theme model (TDD)
 
-### Task 2.1: Palette and Theme Codable
+> **Status:** ✅ Phase complete (2.1 – 2.4). 36 tests green.
+
+### Task 2.1: Palette and Theme Codable ✅
 
 **Files:**
 - Create: `JustMD/JustMD/Theme/Palette.swift`
@@ -315,7 +317,7 @@ struct ThemeTests {
 
 **Step 5 — commit.**
 
-### Task 2.2: Color conversion (hex → NSColor)
+### Task 2.2: Color conversion (hex → NSColor) ✅
 
 **Files:**
 - Create: `JustMD/JustMD/Theme/Palette+NSColor.swift`
@@ -325,7 +327,7 @@ Tests: `"#ECEFF4"` → `NSColor(red: 0.925..., green: 0.937..., blue: 0.957..., 
 
 Commit: `feat(theme): hex <-> NSColor conversion`.
 
-### Task 2.3: Builtin presets embedded resource
+### Task 2.3: Builtin presets embedded resource ✅
 
 **Files:**
 - Create: `JustMD/JustMD/Resources/Themes/follow-system.justmd-theme`
@@ -342,7 +344,7 @@ Hex values from `docs/plans/2026-04-18-just-md-design.md` §Themes.
 
 Commit: `feat(theme): embed 5 builtin theme presets`.
 
-### Task 2.4: ThemeStore — persistence
+### Task 2.4: ThemeStore — persistence ✅
 
 **Files:**
 - Create: `JustMD/JustMD/Theme/ThemeStore.swift`
