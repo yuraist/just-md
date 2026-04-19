@@ -44,6 +44,15 @@ struct SyntaxHighlighterTests {
         #expect(isMarker == true)
     }
 
+    @Test("heading hash gets headingHash attribute")
+    func headingHashAttr() {
+        let s = storage("# Hi")
+        let h = SyntaxHighlighter(parser: MarkdownParser())
+        h.apply(to: s, context: makeContext())
+        let isHash = s.attribute(MarkdownAttribute.headingHash, at: 0, effectiveRange: nil) as? Bool
+        #expect(isHash == true)
+    }
+
     @Test("code block content gets mono font and language attribute")
     func codeBlockMono() {
         let s = storage("```swift\nlet x = 1\n```")

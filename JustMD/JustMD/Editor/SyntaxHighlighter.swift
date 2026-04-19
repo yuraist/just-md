@@ -2,6 +2,7 @@ import AppKit
 
 nonisolated enum MarkdownAttribute {
     static let marker = NSAttributedString.Key("com.justmd.marker")
+    static let headingHash = NSAttributedString.Key("com.justmd.headingHash")
     static let codeLanguage = NSAttributedString.Key("com.justmd.codeLanguage")
 }
 
@@ -70,6 +71,7 @@ nonisolated final class SyntaxHighlighter {
             }
             if NSMaxRange(markerRange) <= storage.length {
                 storage.addAttribute(MarkdownAttribute.marker, value: true, range: markerRange)
+                storage.addAttribute(MarkdownAttribute.headingHash, value: true, range: markerRange)
             }
 
         case .paragraph:
