@@ -46,6 +46,18 @@ final class MarkdownDocument: NSDocument {
     @MainActor
     private func handleExternalChange() {
         guard let url = self.fileURL else { return }
+
+        // Skip if the change was our own autosave/save.
+        // NSDocument tracks the modification date it last knew about; if the
+        // file's current mtime matches (within sub-second tolerance), this
+        // notification is from our own write and there's nothing external to react to.
+        if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+           let diskMod = attrs[.modificationDate] as? Date,
+           let ours = self.fileModificationDate,
+           abs(diskMod.timeIntervalSince(ours)) < 1.0 {
+            return
+        }
+
         let typeName = self.fileType ?? "net.daringfireball.markdown"
         if !self.isDocumentEdited {
             try? self.revert(toContentsOf: url, ofType: typeName)
