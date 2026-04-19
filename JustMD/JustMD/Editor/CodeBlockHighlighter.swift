@@ -1,8 +1,13 @@
 import AppKit
 import Highlightr
 
-@MainActor
-final class CodeBlockHighlighter {
+/// Wraps `Highlightr` to provide syntax-highlighted `NSAttributedString`s
+/// for code blocks. Uses the "github" theme and fast HTML rendering.
+///
+/// The underlying `Highlightr` instance uses a single `JSContext`; callers
+/// should not invoke `highlight` concurrently from multiple threads. In
+/// practice this is called from the main-actor text storage edit pipeline.
+nonisolated final class CodeBlockHighlighter {
     private let engine: Highlightr
 
     init() {

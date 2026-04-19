@@ -149,4 +149,24 @@ struct SyntaxHighlighterTests {
         let color = attrs[.foregroundColor] as? NSColor
         #expect(color != nil)
     }
+
+    @Test("fenced code block applies syntax highlighting")
+    func fencedCodeBlockHighlighted() {
+        let swiftSnippet = "func greet(name: String) -> String { return \"Hello, \\(name)!\" }"
+        let s = storage("```swift\n\(swiftSnippet)\n```")
+        let h = SyntaxHighlighter(parser: MarkdownParser())
+        h.codeHighlighter = CodeBlockHighlighter()
+        h.apply(to: s, context: makeContext())
+        let prefix = ("```swift\n" as NSString).length
+        let contentLen = (swiftSnippet as NSString).length
+        var foundColors = Set<NSColor>()
+        s.enumerateAttribute(
+            .foregroundColor,
+            in: NSRange(location: prefix, length: contentLen),
+            options: []
+        ) { value, _, _ in
+            if let c = value as? NSColor { foundColors.insert(c) }
+        }
+        #expect(foundColors.count >= 2)
+    }
 }

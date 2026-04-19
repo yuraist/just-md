@@ -33,6 +33,12 @@ nonisolated struct HighlightContext {
 nonisolated final class SyntaxHighlighter {
     let parser: MarkdownParser
 
+    /// Optional code-block highlighter. When set, `.codeBlock` content ranges
+    /// get per-token foreground colors overlaid on top of the mono font and
+    /// code background. When nil, code blocks still receive mono font +
+    /// background but no token coloring.
+    var codeHighlighter: CodeBlockHighlighter?
+
     init(parser: MarkdownParser) {
         self.parser = parser
     }
@@ -79,6 +85,28 @@ nonisolated final class SyntaxHighlighter {
             }
             if let language, !language.isEmpty, NSMaxRange(contentRange) <= storage.length {
                 storage.addAttribute(MarkdownAttribute.codeLanguage, value: language, range: contentRange)
+            }
+            if let codeHighlighter,
+               contentRange.length > 0,
+               NSMaxRange(contentRange) <= storage.length {
+                let codeText = (source as NSString).substring(with: contentRange)
+                if let highlighted = codeHighlighter.highlight(codeText, language: language) {
+                    // Only overlay if the highlighted text length matches the content
+                    // range length, otherwise the offset mapping is unsafe.
+                    if highlighted.length == contentRange.length {
+                        let fullHL = NSRange(location: 0, length: highlighted.length)
+                        highlighted.enumerateAttribute(.foregroundColor, in: fullHL, options: []) { value, subRange, _ in
+                            guard let color = value as? NSColor else { return }
+                            let mappedRange = NSRange(
+                                location: contentRange.location + subRange.location,
+                                length: subRange.length
+                            )
+                            if NSMaxRange(mappedRange) <= storage.length {
+                                storage.addAttribute(.foregroundColor, value: color, range: mappedRange)
+                            }
+                        }
+                    }
+                }
             }
 
         case .blockQuote(let range):
