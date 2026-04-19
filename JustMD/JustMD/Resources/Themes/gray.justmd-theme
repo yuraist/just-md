@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "id": "builtin.gray",
+  "isBuiltin": true,
+  "name": "Gray",
+  "light": {
+    "background": "#EDEDED",
+    "text": "#2A2A2A",
+    "accent": "#4A6FA5",
+    "secondary": "#888888",
+    "codeBackground": "#E0E0E0",
+    "selection": "#C7D7EE"
+  }
+}

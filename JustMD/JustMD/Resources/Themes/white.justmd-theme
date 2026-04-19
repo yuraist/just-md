@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "id": "builtin.white",
+  "isBuiltin": true,
+  "name": "White",
+  "light": {
+    "background": "#FFFFFF",
+    "text": "#1A1A1A",
+    "accent": "#0066CC",
+    "secondary": "#999999",
+    "codeBackground": "#F5F5F5",
+    "selection": "#B3D4FC"
+  }
+}

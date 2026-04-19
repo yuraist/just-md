@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "id": "builtin.followSystem",
+  "isBuiltin": true,
+  "name": "Follow System",
+  "light": {
+    "background": "#FFFFFF",
+    "text": "#1A1A1A",
+    "accent": "#0066CC",
+    "secondary": "#999999",
+    "codeBackground": "#F5F5F5",
+    "selection": "#B3D4FC"
+  },
+  "dark": {
+    "background": "#1A1A1A",
+    "text": "#E5E5E5",
+    "accent": "#5E9EFF",
+    "secondary": "#666666",
+    "codeBackground": "#0A0A0A",
+    "selection": "#3A4A6A"
+  }
+}

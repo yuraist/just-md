@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "id": "builtin.black",
+  "isBuiltin": true,
+  "name": "Black",
+  "light": {
+    "background": "#0A0A0A",
+    "text": "#E5E5E5",
+    "accent": "#5E9EFF",
+    "secondary": "#666666",
+    "codeBackground": "#1A1A1A",
+    "selection": "#3A4A6A"
+  }
+}

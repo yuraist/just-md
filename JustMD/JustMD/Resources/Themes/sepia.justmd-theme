@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "id": "builtin.sepia",
+  "isBuiltin": true,
+  "name": "Sepia",
+  "light": {
+    "background": "#F4ECD8",
+    "text": "#5B4636",
+    "accent": "#8C5A30",
+    "secondary": "#A89483",
+    "codeBackground": "#EBE3CF",
+    "selection": "#D9C9A3"
+  }
+}

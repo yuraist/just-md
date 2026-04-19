@@ -84,3 +84,29 @@ struct PaletteColorTests {
         #expect(NSColor.fromHex("hello") == nil)
     }
 }
+
+@Suite("Builtin themes")
+struct BuiltinThemesTests {
+    @Test("loads all 5 builtin themes")
+    func count() {
+        #expect(BuiltinThemes.all.count == 5)
+    }
+
+    @Test("themes have expected ids")
+    func ids() {
+        let ids = Set(BuiltinThemes.all.map(\.id))
+        #expect(ids == ["builtin.followSystem", "builtin.white", "builtin.sepia", "builtin.gray", "builtin.black"])
+    }
+
+    @Test("all themes are marked builtin")
+    func areBuiltin() {
+        let allBuiltin = BuiltinThemes.all.allSatisfy { $0.isBuiltin }
+        #expect(allBuiltin)
+    }
+
+    @Test("Follow System theme has both light and dark palettes")
+    func followSystemHasDark() throws {
+        let theme = try #require(BuiltinThemes.all.first { $0.id == "builtin.followSystem" })
+        #expect(theme.dark != nil)
+    }
+}
