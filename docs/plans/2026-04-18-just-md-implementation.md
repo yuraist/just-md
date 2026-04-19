@@ -840,7 +840,9 @@ Commit.
 
 ## Phase 7: Cmd+B / Cmd+I wrapping
 
-### Task 7.1: MarkdownFormatter (TDD pure logic)
+> **Status:** ✅ Phase complete (7.1, 7.2). 67 tests green.
+
+### Task 7.1: MarkdownFormatter (TDD pure logic) ✅
 
 **Files:**
 - Create: `JustMD/JustMD/Editor/MarkdownFormatter.swift`
@@ -875,7 +877,7 @@ Tests:
 
 Write each test + implementation increment, commit each.
 
-### Task 7.2: Wire into MarkdownTextView
+### Task 7.2: Wire into MarkdownTextView ✅
 
 Override `keyDown` or implement `doCommand(by:)` / bind menu items `toggleBold:` and `toggleItalic:` (inherited from NSResponder).
 
