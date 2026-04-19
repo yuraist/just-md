@@ -72,10 +72,17 @@ nonisolated final class MarkdownParser: Sendable {
 
         var child = cmark_node_first_child(root)
         while let node = child {
-            if cmark_node_get_type(node) == CMARK_NODE_HEADING {
+            switch cmark_node_get_type(node) {
+            case CMARK_NODE_HEADING:
                 if let block = headingBlock(from: node, source: source, offsets: offsets) {
                     blocks.append(block)
                 }
+            case CMARK_NODE_PARAGRAPH:
+                if let block = paragraphBlock(from: node, source: source, offsets: offsets) {
+                    blocks.append(block)
+                }
+            default:
+                break
             }
             child = cmark_node_next(node)
         }
@@ -115,6 +122,25 @@ nonisolated final class MarkdownParser: Sendable {
         let markerRange = NSRange(location: startUTF16, length: markerLength)
 
         return .heading(level: level, range: range, markerRange: markerRange)
+    }
+
+    private func paragraphBlock(
+        from node: UnsafeMutablePointer<cmark_node>,
+        source: String,
+        offsets: ByteOffsetTable
+    ) -> Block? {
+        let startLine = cmark_node_get_start_line(node)
+        let startCol = cmark_node_get_start_column(node)
+        let endLine = cmark_node_get_end_line(node)
+        let endCol = cmark_node_get_end_column(node)
+
+        let startByte = offsets.byteOffset(line: startLine, column: startCol)
+        let endByteExclusive = offsets.byteOffset(line: endLine, column: endCol) + 1
+
+        let startUTF16 = utf16Offset(byteOffset: startByte, in: source)
+        let endUTF16 = utf16Offset(byteOffset: endByteExclusive, in: source)
+        let length = Swift.max(0, endUTF16 - startUTF16)
+        return .paragraph(range: NSRange(location: startUTF16, length: length))
     }
 }
 

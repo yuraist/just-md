@@ -21,4 +21,13 @@ struct MarkdownParserTests {
         if case let .heading(level, _, _) = doc.blocks[1] { #expect(level == 2) } else { Issue.record("not heading") }
         if case let .heading(level, _, _) = doc.blocks[2] { #expect(level == 6) } else { Issue.record("not heading") }
     }
+
+    @Test("parses paragraphs")
+    func parsesParagraphs() {
+        let parser = MarkdownParser()
+        let doc = parser.parse("Hello\n\nWorld")
+        #expect(doc.blocks.count == 2)
+        if case .paragraph = doc.blocks[0] {} else { Issue.record("not paragraph 0") }
+        if case .paragraph = doc.blocks[1] {} else { Issue.record("not paragraph 1") }
+    }
 }
