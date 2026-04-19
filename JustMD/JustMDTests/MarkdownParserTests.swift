@@ -108,4 +108,13 @@ struct MarkdownParserTests {
         #expect(doc.blocks.count == 1)
         if case .blockQuote = doc.blocks[0] {} else { Issue.record("not blockQuote") }
     }
+
+    @Test("parses GFM pipe table")
+    func parsesTable() {
+        let parser = MarkdownParser()
+        let source = "| a | b |\n|---|---|\n| 1 | 2 |\n"
+        let doc = parser.parse(source)
+        #expect(doc.blocks.count == 1)
+        if case .table = doc.blocks[0] {} else { Issue.record("not table") }
+    }
 }

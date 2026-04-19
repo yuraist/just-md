@@ -96,7 +96,10 @@ nonisolated final class MarkdownParser: Sendable {
             case CMARK_NODE_BLOCK_QUOTE:
                 blocks.append(.blockQuote(range: nodeRange(node, source: source, offsets: offsets)))
             default:
-                break
+                if let typeCStr = cmark_node_get_type_string(node),
+                   String(cString: typeCStr) == "table" {
+                    blocks.append(.table(range: nodeRange(node, source: source, offsets: offsets)))
+                }
             }
             child = cmark_node_next(node)
         }
