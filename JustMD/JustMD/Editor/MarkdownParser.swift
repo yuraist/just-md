@@ -93,6 +93,8 @@ nonisolated final class MarkdownParser: Sendable {
                 if let block = listBlock(from: node, source: source, offsets: offsets) {
                     blocks.append(block)
                 }
+            case CMARK_NODE_BLOCK_QUOTE:
+                blocks.append(.blockQuote(range: nodeRange(node, source: source, offsets: offsets)))
             default:
                 break
             }

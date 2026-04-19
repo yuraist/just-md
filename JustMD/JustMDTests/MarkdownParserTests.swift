@@ -100,4 +100,12 @@ struct MarkdownParserTests {
         #expect(items[1].taskState == .checked)
         #expect(items[2].taskState == nil)
     }
+
+    @Test("parses blockquote")
+    func parsesBlockquote() {
+        let parser = MarkdownParser()
+        let doc = parser.parse("> a quote\n> with two lines\n")
+        #expect(doc.blocks.count == 1)
+        if case .blockQuote = doc.blocks[0] {} else { Issue.record("not blockQuote") }
+    }
 }
