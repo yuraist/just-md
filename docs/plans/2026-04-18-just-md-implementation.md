@@ -1080,7 +1080,9 @@ Commit.
 
 ## Phase 10: Final polish
 
-### Task 10.1: Theme applied to editor
+> **Status:** ✅ Implementation tasks complete (10.1, 10.2, 10.3, 10.5, 10.6). 10.4 (inline images) deferred to known-issues. 10.7 (QA) and 10.8 (tag) pending user. 72 tests green.
+
+### Task 10.1: Theme applied to editor ✅
 
 Editor window observes `PreferencesStore.themeId` and `NSAppearance` → computes active `Palette` → rebuilds `HighlightContext` → re-applies highlighter.
 
@@ -1088,7 +1090,7 @@ Smoke test: toggle system Light/Dark → editor swaps palettes.
 
 Commit.
 
-### Task 10.2: Font size / family menu items
+### Task 10.2: Font size / family menu items ✅
 
 Format menu:
 - `Font Size: Bigger ⌘+` → `prefs.fontSize += 1`
@@ -1098,13 +1100,13 @@ Format menu:
 
 Commit.
 
-### Task 10.3: Theme picker submenu
+### Task 10.3: Theme picker submenu ✅
 
 Dynamic `View → Theme ▸` submenu populated at open from `BuiltinThemes.all + ThemeStore.loadUser()`. Check-mark current. Click → sets `prefs.themeId`.
 
 Commit.
 
-### Task 10.4: Inline image rendering
+### Task 10.4: Inline image rendering ⏸ (deferred — see `docs/known-issues.md` Issue 10-A)
 
 In `SyntaxHighlighter`, for each `.image(range, urlRange, url, alt)`:
 1. If `url` is a file:// or relative (resolve against `document.fileURL.deletingLastPathComponent()`), load `NSImage`.
@@ -1113,7 +1115,7 @@ In `SyntaxHighlighter`, for each `.image(range, urlRange, url, alt)`:
 
 Smoke test: open a `.md` with `![](./pic.png)` next to a real PNG → image renders inline. Commit.
 
-### Task 10.5: Clickable links via Cmd+click
+### Task 10.5: Clickable links via Cmd+click ✅
 
 `NSTextView` has `linkTextAttributes` + `clickableLinks`. Ensure:
 
@@ -1127,7 +1129,7 @@ For Cmd detection, check `NSApp.currentEvent?.modifierFlags.contains(.command)`.
 
 Smoke test. Commit.
 
-### Task 10.6: External file changes (NSFilePresenter)
+### Task 10.6: External file changes (NSFilePresenter) ✅
 
 Hook `MarkdownDocument` as `NSFilePresenter`, implement `presentedItemDidChange` — if not dirty, reload from disk. If dirty, show alert "File changed on disk. Revert?".
 
