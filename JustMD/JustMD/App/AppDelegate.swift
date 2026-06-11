@@ -167,7 +167,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let formatIndex = mainMenu.items.firstIndex { $0.title == "Format" } ?? mainMenu.items.count - 1
             mainMenu.insertItem(viewItem, at: formatIndex + 1)
         }
+        installReadingModeMenuItem()
         installThemeSubmenu()
+    }
+
+    private func installReadingModeMenuItem() {
+        guard let viewMenu = NSApp.mainMenu?.items.first(where: { $0.title == "View" })?.submenu else { return }
+        if viewMenu.items.contains(where: { $0.title == "Reading Mode" }) { return }
+        let item = NSMenuItem(
+            title: "Reading Mode",
+            action: #selector(DocumentViewController.toggleReadMode(_:)),
+            keyEquivalent: "e"
+        )
+        item.keyEquivalentModifierMask = [.command, .shift]
+        if viewMenu.items.isEmpty {
+            viewMenu.addItem(item)
+        } else {
+            viewMenu.insertItem(item, at: 0)
+        }
+        viewMenu.insertItem(NSMenuItem.separator(), at: 1)
     }
 
     private func installThemeSubmenu() {

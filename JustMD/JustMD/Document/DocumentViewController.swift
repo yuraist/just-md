@@ -8,6 +8,13 @@ final class DocumentViewController: NSViewController {
     private(set) var textView: MarkdownTextView?
     private var scrollView: NSScrollView?
 
+    static let readModeDidChangeNotification = Notification.Name("com.justmd.readModeDidChange")
+
+    private(set) var isReadMode = false
+    private var readTextView: NSTextView?
+    private lazy var readRenderer = MarkdownReadRenderer(codeHighlighter: readCodeHighlighter)
+    private let readCodeHighlighter = CodeBlockHighlighter()
+
     init(document: MarkdownDocument) {
         self.document = document
         super.init(nibName: nil, bundle: nil)
@@ -105,7 +112,67 @@ final class DocumentViewController: NSViewController {
                 with: newText
             )
             self.storage.applyHighlightingNow()
+            if self.isReadMode { self.renderReadView() }
         }
+    }
+
+    // MARK: - Read mode
+
+    @objc func toggleReadMode(_ sender: Any?) {
+        setReadMode(!isReadMode)
+    }
+
+    func setReadMode(_ read: Bool) {
+        guard read != isReadMode, let scrollView else { return }
+        isReadMode = read
+        if read {
+            let readView = makeReadTextViewIfNeeded()
+            renderReadView()
+            scrollView.documentView = readView
+            view.window?.makeFirstResponder(readView)
+        } else if let textView {
+            scrollView.documentView = textView
+            view.window?.makeFirstResponder(textView)
+        }
+        NotificationCenter.default.post(name: Self.readModeDidChangeNotification, object: self)
+    }
+
+    private func makeReadTextViewIfNeeded() -> NSTextView {
+        if let readTextView { return readTextView }
+        // Explicit TextKit 1 stack: NSTextTable rendering and our layout
+        // manager chrome (quote bar, HR rule) both live there.
+        let readStorage = NSTextStorage()
+        let layoutManager = MarkdownLayoutManager()
+        readStorage.addLayoutManager(layoutManager)
+        let container = NSTextContainer(size: NSSize(width: 720, height: CGFloat.greatestFiniteMagnitude))
+        container.widthTracksTextView = true
+        container.heightTracksTextView = false
+        layoutManager.addTextContainer(container)
+        let readView = NSTextView(frame: scrollView?.contentView.bounds ?? .zero, textContainer: container)
+        readView.isEditable = false
+        readView.isRichText = true
+        readView.usesFindBar = true
+        readView.textContainerInset = NSSize(width: 40, height: 32)
+        readView.minSize = NSSize(width: 0, height: scrollView?.contentView.bounds.height ?? 0)
+        readView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        readView.isVerticallyResizable = true
+        readView.isHorizontallyResizable = false
+        readView.autoresizingMask = [.width]
+        readView.backgroundColor = textView?.backgroundColor ?? .textBackgroundColor
+        readView.linkTextAttributes = textView?.linkTextAttributes ?? [:]
+        self.readTextView = readView
+        return readView
+    }
+
+    private func renderReadView() {
+        guard let readTextView, let context = storage.highlightContext else { return }
+        let rendered = readRenderer.render(
+            document.text,
+            context: context,
+            baseURL: document.fileURL?.deletingLastPathComponent()
+        )
+        readTextView.textStorage?.setAttributedString(rendered)
+        readTextView.backgroundColor = textView?.backgroundColor ?? readTextView.backgroundColor
     }
 
     private func rebuildContext() {
@@ -144,6 +211,7 @@ final class DocumentViewController: NSViewController {
             ]
         }
         storage.applyHighlightingNow()
+        if isReadMode { renderReadView() }
     }
 
     private func activePalette(for theme: Theme) -> Palette {
@@ -164,6 +232,15 @@ final class DocumentViewController: NSViewController {
             codeFont: NSFont.monospacedSystemFont(ofSize: 14, weight: .regular),
             codeBackground: NSColor(white: 0.95, alpha: 1)
         )
+    }
+}
+
+extension DocumentViewController: NSMenuItemValidation {
+    func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(toggleReadMode(_:)) {
+            menuItem.state = isReadMode ? .on : .off
+        }
+        return true
     }
 }
 
