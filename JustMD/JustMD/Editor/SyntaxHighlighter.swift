@@ -9,6 +9,12 @@ nonisolated enum MarkdownAttribute {
     static let thematicBreak = NSAttributedString.Key("com.justmd.thematicBreak")
     /// Tagged on blockquote ranges; the layout manager draws the accent bar.
     static let blockQuote = NSAttributedString.Key("com.justmd.blockQuote")
+    /// Tagged on the `-`/`*`/`+` of unordered list items; rendered as `•` off
+    /// the active paragraph.
+    static let listBullet = NSAttributedString.Key("com.justmd.listBullet")
+    /// Tagged on the `[` of a task item, value = Bool (checked); rendered as
+    /// ☑/□ off the active paragraph.
+    static let taskCheckbox = NSAttributedString.Key("com.justmd.taskCheckbox")
 }
 
 nonisolated struct HighlightContext {
@@ -201,18 +207,34 @@ nonisolated final class SyntaxHighlighter {
             storage.addAttribute(.paragraphStyle, value: style, range: range)
             tagBlockquoteMarkers(in: range, source: source, storage: storage)
 
-        case .list(_, let items, _):
+        case .list(let ordered, let items, _):
             // Bullets/numbers stay visible (accent-tinted) — hiding them would
             // leave bullet-less lines. Wrapped lines hang under the text, not
-            // under the marker.
+            // under the marker. Off the active paragraph, dashes render as •
+            // and task brackets as ☑/□ (glyph substitution in the layout
+            // delegate, keyed by the attributes set here).
             let ns = source as NSString
             for item in items where NSMaxRange(item.markerRange) <= storage.length {
                 storage.addAttribute(.foregroundColor, value: context.accentColor, range: item.markerRange)
-                let lineStart = ns.lineRange(for: NSRange(location: item.markerRange.location, length: 0)).location
-                let prefixRange = NSRange(location: lineStart, length: NSMaxRange(item.markerRange) - lineStart)
-                guard prefixRange.length > 0, NSMaxRange(prefixRange) <= ns.length else { continue }
-                let prefix = ns.substring(with: prefixRange)
-                let indent = (prefix as NSString).size(withAttributes: [.font: context.baseFont]).width
+
+                let indent: CGFloat
+                if let taskState = item.taskState {
+                    tagTaskCheckbox(item: item, checked: taskState == .checked,
+                                    source: ns, storage: storage, context: context)
+                    // Visible prefix off the active line is "☑ ", not "- [x] ".
+                    indent = ("☑ " as NSString).size(
+                        withAttributes: [.font: NSFont.systemFont(ofSize: context.baseFont.pointSize)]
+                    ).width
+                } else {
+                    if !ordered {
+                        tagBulletChar(item: item, source: ns, storage: storage)
+                    }
+                    let lineStart = ns.lineRange(for: NSRange(location: item.markerRange.location, length: 0)).location
+                    let prefixRange = NSRange(location: lineStart, length: NSMaxRange(item.markerRange) - lineStart)
+                    guard prefixRange.length > 0, NSMaxRange(prefixRange) <= ns.length else { continue }
+                    let prefix = ns.substring(with: prefixRange)
+                    indent = (prefix as NSString).size(withAttributes: [.font: context.baseFont]).width
+                }
                 let style = NSMutableParagraphStyle()
                 style.headIndent = indent
                 if NSMaxRange(item.range) <= storage.length {
@@ -250,6 +272,54 @@ nonisolated final class SyntaxHighlighter {
     }
 
     // MARK: - Block chrome helpers
+
+    /// Tags the single `-`/`*`/`+` character of an unordered item for bullet
+    /// substitution.
+    private func tagBulletChar(item: ListItem, source ns: NSString, storage: NSTextStorage) {
+        var i = item.markerRange.location
+        let end = min(NSMaxRange(item.markerRange), ns.length)
+        while i < end, ns.character(at: i) == 0x20 { i += 1 }
+        guard i < end else { return }
+        let c = ns.character(at: i)
+        guard c == 0x2D || c == 0x2A || c == 0x2B else { return }  // - * +
+        storage.addAttribute(MarkdownAttribute.listBullet, value: true, range: NSRange(location: i, length: 1))
+    }
+
+    /// For `- [x] ` task markers: the *dash* renders as the checkbox glyph and
+    /// the ` [x]` tail hides off the active paragraph. The dash must stay a
+    /// visible glyph — a paragraph whose leading glyphs are all `.null` gets
+    /// laid out with `headIndent` applied to its first line. The dash gets the
+    /// system font; the serif and mono faces lack the checkbox glyphs.
+    private func tagTaskCheckbox(
+        item: ListItem,
+        checked: Bool,
+        source ns: NSString,
+        storage: NSTextStorage,
+        context: HighlightContext
+    ) {
+        let start = item.markerRange.location
+        let end = min(NSMaxRange(item.markerRange), ns.length)
+        var dash = start
+        while dash < end, ns.character(at: dash) == 0x20 { dash += 1 }
+        guard dash < end else { return }
+        let dashChar = ns.character(at: dash)
+        guard dashChar == 0x2D || dashChar == 0x2A || dashChar == 0x2B else { return }  // - * +
+        var bracket = dash + 1
+        while bracket < end, ns.character(at: bracket) != 0x5B { bracket += 1 }  // [
+        guard bracket + 2 < end, ns.character(at: bracket + 2) == 0x5D else { return }  // ]
+
+        let box = NSRange(location: dash, length: 1)
+        storage.addAttribute(MarkdownAttribute.taskCheckbox, value: checked, range: box)
+        storage.addAttribute(.font, value: NSFont.systemFont(ofSize: context.baseFont.pointSize), range: box)
+        storage.addAttribute(
+            .foregroundColor,
+            value: checked ? context.accentColor : context.secondaryColor,
+            range: box
+        )
+        // Hide " [x]" between the checkbox and the trailing space.
+        let tail = NSRange(location: dash + 1, length: (bracket + 3) - (dash + 1))
+        storage.addAttribute(MarkdownAttribute.marker, value: true, range: tail)
+    }
 
     /// Tags the leading `>` markers of every blockquote line so they hide off
     /// the active paragraph (the drawn accent bar carries the meaning).

@@ -1,4 +1,5 @@
 import AppKit
+import CoreText
 
 /// Pure logic for deciding which marker characters are hidden, separated from
 /// the layout-manager plumbing so it can be unit-tested.
@@ -92,6 +93,10 @@ extension MarkerVisibilityController: NSLayoutManagerDelegate {
 
     nonisolated static let hiddenProperty = NSLayoutManager.GlyphProperty.null
 
+    private static let bulletChar: unichar = 0x2022      // •
+    private static let checkedChar: unichar = 0x2611     // ☑
+    private static let uncheckedChar: unichar = 0x25A1   // □
+
     func layoutManager(
         _ layoutManager: NSLayoutManager,
         shouldGenerateGlyphs glyphs: UnsafePointer<CGGlyph>,
@@ -107,8 +112,10 @@ extension MarkerVisibilityController: NSLayoutManagerDelegate {
         let lastChar = charIndexes[count - 1]
         let span = NSRange(location: firstChar, length: lastChar - firstChar + 1)
         let hidden = MarkerVisibility.hiddenRanges(in: span, attributed: storage, activeRange: activeRange)
-        guard !hidden.isEmpty else { return 0 }  // 0 → default glyph generation
+        let substitutions = substitutionMap(in: span, storage: storage)
+        guard !hidden.isEmpty || !substitutions.isEmpty else { return 0 }  // 0 → default
 
+        var newGlyphs = Array(UnsafeBufferPointer(start: glyphs, count: count))
         var newProps = [NSLayoutManager.GlyphProperty](repeating: [], count: count)
         var rangeCursor = 0
         for i in 0..<count {
@@ -119,17 +126,59 @@ extension MarkerVisibilityController: NSLayoutManagerDelegate {
             }
             if rangeCursor < hidden.count && NSLocationInRange(charIndex, hidden[rangeCursor]) {
                 newProps[i] = Self.hiddenProperty
+            } else if let replacement = substitutions[charIndex],
+                      let glyph = glyphID(for: replacement, in: aFont) {
+                newGlyphs[i] = glyph
             }
         }
-        newProps.withUnsafeBufferPointer { buffer in
-            layoutManager.setGlyphs(
-                glyphs,
-                properties: buffer.baseAddress!,
-                characterIndexes: charIndexes,
-                font: aFont,
-                forGlyphRange: glyphRange
-            )
+        newGlyphs.withUnsafeBufferPointer { glyphBuffer in
+            newProps.withUnsafeBufferPointer { propBuffer in
+                layoutManager.setGlyphs(
+                    glyphBuffer.baseAddress!,
+                    properties: propBuffer.baseAddress!,
+                    characterIndexes: charIndexes,
+                    font: aFont,
+                    forGlyphRange: glyphRange
+                )
+            }
         }
         return count
+    }
+
+    /// Characters in `span` (outside the active paragraph) whose glyph should
+    /// be swapped for a presentation glyph: list dashes → •, task brackets →
+    /// ☑/□. The characters themselves never change.
+    private func substitutionMap(in span: NSRange, storage: NSTextStorage) -> [Int: unichar] {
+        var map: [Int: unichar] = [:]
+        let limit = NSRange(
+            location: max(0, span.location),
+            length: min(NSMaxRange(span), storage.length) - max(0, span.location)
+        )
+        guard limit.length > 0 else { return map }
+        storage.enumerateAttribute(MarkdownAttribute.listBullet, in: limit, options: []) { value, range, _ in
+            guard value as? Bool == true,
+                  NSIntersectionRange(range, self.activeRange).length == 0 else { return }
+            for i in range.location..<NSMaxRange(range) { map[i] = Self.bulletChar }
+        }
+        storage.enumerateAttribute(MarkdownAttribute.taskCheckbox, in: limit, options: []) { value, range, _ in
+            guard let checked = value as? Bool,
+                  NSIntersectionRange(range, self.activeRange).length == 0 else { return }
+            let replacement = checked ? Self.checkedChar : Self.uncheckedChar
+            for i in range.location..<NSMaxRange(range) { map[i] = replacement }
+        }
+        return map
+    }
+
+    /// Glyph ID lookup with a per-font cache; returns nil when the font lacks
+    /// the character (the raw markdown char stays visible then).
+    nonisolated(unsafe) private static var glyphCache: [String: CGGlyph] = [:]
+    private func glyphID(for char: unichar, in font: NSFont) -> CGGlyph? {
+        let key = "\(font.fontName)#\(char)"
+        if let cached = Self.glyphCache[key] { return cached == 0 ? nil : cached }
+        var chars = [char]
+        var ids: [CGGlyph] = [0]
+        let found = CTFontGetGlyphsForCharacters(font as CTFont, &chars, &ids, 1)
+        Self.glyphCache[key] = found ? ids[0] : 0
+        return found ? ids[0] : nil
     }
 }

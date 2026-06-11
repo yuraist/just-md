@@ -73,6 +73,61 @@ struct MarkerHidingLayoutTests {
         #expect(lm.propertyForGlyph(at: lm.glyphIndexForCharacter(at: boldChar)) != .null)
     }
 
+    private func glyphID(_ char: Character, font: NSFont) -> CGGlyph {
+        var chars = Array(String(char).utf16)
+        var ids = [CGGlyph](repeating: 0, count: chars.count)
+        _ = CTFontGetGlyphsForCharacters(font as CTFont, &chars, &ids, chars.count)
+        return ids[0]
+    }
+
+    @Test("list dash renders as a bullet glyph off the active paragraph")
+    func bulletSubstitution() throws {
+        let text = "- one\n\npara"
+        let (view, _) = makeEditor(text)
+        let lm = try #require(view.layoutManager)
+        let container = try #require(view.textContainer)
+        let ns = text as NSString
+        let bullet = glyphID("•", font: NSFont.systemFont(ofSize: 16))
+
+        view.setSelectedRange(NSRange(location: ns.range(of: "para").location, length: 0))
+        lm.ensureLayout(for: container)
+        #expect(lm.cgGlyph(at: lm.glyphIndexForCharacter(at: 0)) == bullet)
+
+        // The active paragraph shows the raw dash again.
+        view.setSelectedRange(NSRange(location: 1, length: 0))
+        lm.ensureLayout(for: container)
+        #expect(lm.cgGlyph(at: lm.glyphIndexForCharacter(at: 0)) != bullet)
+    }
+
+    @Test("task dash renders as the checkbox glyph; bracket tail hides")
+    func checkboxSubstitution() throws {
+        let text = "- [x] done\n- [ ] open\n\npara"
+        let (view, _) = makeEditor(text)
+        let lm = try #require(view.layoutManager)
+        let container = try #require(view.textContainer)
+        let ns = text as NSString
+        let sf = NSFont.systemFont(ofSize: 16)
+
+        view.setSelectedRange(NSRange(location: ns.range(of: "para").location, length: 0))
+        lm.ensureLayout(for: container)
+
+        // The dash itself becomes the checkbox glyph — it must stay a visible
+        // leading glyph, otherwise the first line is laid out at headIndent.
+        let checkedGlyph = lm.glyphIndexForCharacter(at: 0)
+        #expect(lm.cgGlyph(at: checkedGlyph) == glyphID("☑", font: sf))
+        let openDash = ns.range(of: "- [ ]").location
+        #expect(lm.cgGlyph(at: lm.glyphIndexForCharacter(at: openDash)) == glyphID("□", font: sf))
+
+        // " [x]" after the dash is hidden.
+        for offset in 1...4 {
+            #expect(lm.propertyForGlyph(at: lm.glyphIndexForCharacter(at: offset)) == .null)
+        }
+
+        // The checkbox sits at the line start (no phantom headIndent).
+        let boxX = lm.location(forGlyphAt: checkedGlyph).x
+        #expect(boxX < 10)
+    }
+
     @Test("quote bar geometry sits on the quote line, not the blank line above")
     func quoteBarGeometry() throws {
         let text = "intro\n\n> A quoted line"
