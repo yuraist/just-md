@@ -122,7 +122,11 @@ final class MarkdownTextView: NSTextView {
         let replacement = newNS.substring(with: NSRange(location: prefixLen,
                                                         length: newNS.length - prefixLen - suffixLen))
 
+        // Route through shouldChangeText/didChangeText so the edit lands on the
+        // undo stack — direct storage mutation would make Cmd+Z skip it.
+        guard shouldChangeText(in: editRange, replacementString: replacement) else { return }
         ts.replaceCharacters(in: editRange, with: replacement)
+        didChangeText()
         setSelectedRange(result.newSelection)
     }
 }

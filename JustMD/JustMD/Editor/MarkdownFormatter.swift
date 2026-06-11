@@ -26,11 +26,17 @@ nonisolated struct MarkdownFormatter {
         let newSelection: NSRange
     }
 
-    static func wrap(source: String, selection: NSRange, delimiter: Delimiter) -> WrapResult {
+    static func wrap(source: String, selection rawSelection: NSRange, delimiter: Delimiter) -> WrapResult {
         let ns = source as NSString
         let delim = delimiter.string
         let delimNS = delim as NSString
         let delimLen = delimNS.length
+
+        // Shrink the selection to exclude leading/trailing whitespace and newlines.
+        // Triple-click selections include the trailing newline, and CommonMark
+        // emphasis delimiters cannot sit adjacent to whitespace — `**para\n**`
+        // would not parse, so the highlighter would silently drop the styling.
+        let selection = trimmed(selection: rawSelection, in: ns)
 
         // Empty selection: insert "<delim><delim>" and place caret between them.
         if selection.length == 0 {
@@ -74,5 +80,24 @@ nonisolated struct MarkdownFormatter {
         let newString = ns.replacingCharacters(in: selection, with: wrapped)
         let newSelection = NSRange(location: selection.location + delimLen, length: selection.length)
         return WrapResult(newString: newString, newSelection: newSelection)
+    }
+
+    /// Shrinks `selection` so it starts and ends on non-whitespace. A selection
+    /// that is entirely whitespace collapses to an empty range at its start.
+    private static func trimmed(selection: NSRange, in ns: NSString) -> NSRange {
+        guard selection.length > 0, NSMaxRange(selection) <= ns.length else { return selection }
+        let ws = CharacterSet.whitespacesAndNewlines
+        var start = selection.location
+        var end = NSMaxRange(selection)
+        while start < end {
+            guard let scalar = Unicode.Scalar(ns.character(at: start)), ws.contains(scalar) else { break }
+            start += 1
+        }
+        while end > start {
+            guard let scalar = Unicode.Scalar(ns.character(at: end - 1)), ws.contains(scalar) else { break }
+            end -= 1
+        }
+        if start == end { return NSRange(location: selection.location, length: 0) }
+        return NSRange(location: start, length: end - start)
     }
 }

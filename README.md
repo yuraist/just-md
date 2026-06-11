@@ -1,6 +1,6 @@
 # JustMD
 
-A native macOS markdown editor. Open a `.md` file, see it rendered with dimmed syntax markers, write more text. No file browser, no cloud, no sync, no tabs, no sidebars — inspired by Bear, iA Writer, and Medium.
+A native macOS markdown editor. Open a `.md` file, see it rendered with dimmed syntax markers, write more text. No file browser, no cloud, no sync, no tabs, no sidebars — inspired by Bear, iA Writer, and Medium. *Hello bold*. 
 
 > **Status:** MVP (v0.1.0). See [`docs/product.md`](docs/product.md) for what it does; [`docs/known-issues.md`](docs/known-issues.md) for what's deferred to v0.2.
 
