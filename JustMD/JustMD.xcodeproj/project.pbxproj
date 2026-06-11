@@ -27,9 +27,22 @@
 		BEC5A11F2F93E202008208B6 /* JustMDTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JustMDTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		BEC5A1502F94E500008208B6 /* Exceptions for "JustMD" folder in "JustMD" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = BEC5A1102F93E200008208B6 /* JustMD */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		BEC5A1132F93E200008208B6 /* JustMD */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				BEC5A1502F94E500008208B6 /* Exceptions for "JustMD" folder in "JustMD" target */,
+			);
 			path = JustMD;
 			sourceTree = "<group>";
 		};
