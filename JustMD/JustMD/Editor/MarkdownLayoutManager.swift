@@ -7,6 +7,23 @@ nonisolated final class MarkdownLayoutManager: NSLayoutManager {
 
     weak var visibility: MarkerVisibilityController?
 
+    /// Union of the line-fragment rects that contain *visible* glyphs of the
+    /// range. `boundingRect(forGlyphRange:)` mis-reports ranges whose leading
+    /// glyphs are `.null` (hidden markers) — it lands on the line above.
+    func visibleLineFragmentUnion(forCharacterRange range: NSRange) -> CGRect {
+        let glyphs = glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+        var union = CGRect.null
+        var g = glyphs.location
+        while g < NSMaxRange(glyphs), g < numberOfGlyphs {
+            guard propertyForGlyph(at: g) != .null else { g += 1; continue }
+            var lineRange = NSRange(location: 0, length: 0)
+            let rect = lineFragmentUsedRect(forGlyphAt: g, effectiveRange: &lineRange)
+            union = union.union(rect)
+            g = max(NSMaxRange(lineRange), g + 1)
+        }
+        return union
+    }
+
     override func drawBackground(forGlyphRange glyphsToShow: NSRange, at origin: NSPoint) {
         super.drawBackground(forGlyphRange: glyphsToShow, at: origin)
         guard let storage = textStorage, storage.length > 0,
@@ -35,12 +52,13 @@ nonisolated final class MarkdownLayoutManager: NSLayoutManager {
             line.fill()
         }
 
-        // Blockquote accent bar, drawn per enclosed line fragment so wrapped
-        // and multi-line quotes get a continuous bar.
+        // Blockquote accent bar. The rect comes from the visible line
+        // fragments only — with the leading `>` glyphs hidden, boundingRect
+        // would report the blank line above the quote.
         storage.enumerateAttribute(MarkdownAttribute.blockQuote, in: charRange, options: []) { value, range, _ in
             guard value as? Bool == true else { return }
-            let glyphs = glyphRange(forCharacterRange: range, actualCharacterRange: nil)
-            let rect = boundingRect(forGlyphRange: glyphs, in: container)
+            let rect = visibleLineFragmentUnion(forCharacterRange: range)
+            guard !rect.isNull, rect.height > 0 else { return }
             let bar = NSRect(
                 x: origin.x + padding + 2,
                 y: rect.minY + origin.y + 1,

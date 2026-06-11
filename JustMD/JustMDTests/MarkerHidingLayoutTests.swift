@@ -73,6 +73,28 @@ struct MarkerHidingLayoutTests {
         #expect(lm.propertyForGlyph(at: lm.glyphIndexForCharacter(at: boldChar)) != .null)
     }
 
+    @Test("quote bar geometry sits on the quote line, not the blank line above")
+    func quoteBarGeometry() throws {
+        let text = "intro\n\n> A quoted line"
+        let (view, _) = makeEditor(text)
+        let lm = try #require(view.layoutManager as? MarkdownLayoutManager)
+        let container = try #require(view.textContainer)
+
+        // Caret in "intro": the quote's `> ` markers are hidden.
+        view.setSelectedRange(NSRange(location: 0, length: 0))
+        lm.ensureLayout(for: container)
+
+        let ns = text as NSString
+        let quoteRange = ns.range(of: "> A quoted line")
+        let union = lm.visibleLineFragmentUnion(forCharacterRange: quoteRange)
+
+        let aGlyph = lm.glyphIndexForCharacter(at: ns.range(of: "A quoted").location)
+        let quoteLine = lm.lineFragmentUsedRect(forGlyphAt: aGlyph, effectiveRange: nil)
+
+        #expect(abs(union.minY - quoteLine.minY) < 0.5)
+        #expect(abs(union.height - quoteLine.height) < 0.5)
+    }
+
     @Test("typing attributes follow the live neighbor, not the stale snapshot")
     func typingAttributesLiveInheritance() throws {
         // Reproduces the "just-typed character is small in a heading" bug:
