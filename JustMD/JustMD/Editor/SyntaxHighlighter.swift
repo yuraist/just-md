@@ -269,6 +269,20 @@ nonisolated final class SyntaxHighlighter {
             for span in spans(for: block, source: nsSource) {
                 applySpan(span, storage: storage, context: context)
             }
+        case .list(_, let items, _):
+            // Per-item content (after the marker) gets the same treatment —
+            // **bold**, links, `code` inside bullets must render too.
+            let nsSource = source as NSString
+            for item in items {
+                let contentStart = NSMaxRange(item.markerRange)
+                let contentEnd = min(NSMaxRange(item.range), nsSource.length)
+                guard contentEnd > contentStart else { continue }
+                let contentRange = NSRange(location: contentStart, length: contentEnd - contentStart)
+                let substring = nsSource.substring(with: contentRange)
+                for span in spans(forContent: substring, shift: contentStart) {
+                    applySpan(span, storage: storage, context: context)
+                }
+            }
         default:
             break
         }
@@ -470,15 +484,18 @@ nonisolated final class SyntaxHighlighter {
               blockRange.length > 0,
               blockRange.location >= 0,
               NSMaxRange(blockRange) <= nsSource.length else { return [] }
-        let substring = nsSource.substring(with: blockRange)
+        return spans(forContent: nsSource.substring(with: blockRange), shift: blockRange.location)
+    }
+
+    private func spans(forContent substring: String, shift: Int) -> [InlineSpan] {
         if let cached = spanCache[substring] {
-            return cached.map { $0.offset(by: blockRange.location) }
+            return cached.map { $0.offset(by: shift) }
         }
         inlineParseMisses += 1
         let relative = parser.inlineSpans(forBlockContent: substring)
         if spanCache.count > 1024 { spanCache.removeAll(keepingCapacity: true) }
         spanCache[substring] = relative
-        return relative.map { $0.offset(by: blockRange.location) }
+        return relative.map { $0.offset(by: shift) }
     }
 
     // MARK: - Code token colors

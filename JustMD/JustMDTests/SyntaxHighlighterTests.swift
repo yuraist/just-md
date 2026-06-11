@@ -151,6 +151,33 @@ struct SyntaxHighlighterTests {
         #expect(cellColor == NSColor.labelColor)
     }
 
+    @Test("bold inside a list item renders bold with hidden markers")
+    func listItemBold() {
+        let text = "- has **bold** word"
+        let s = storage(text)
+        let h = SyntaxHighlighter(parser: MarkdownParser())
+        h.apply(to: s, context: makeContext())
+        let ns = text as NSString
+        let boldLoc = ns.range(of: "bold").location
+        let font = s.attribute(.font, at: boldLoc, effectiveRange: nil) as? NSFont
+        #expect(font?.fontDescriptor.symbolicTraits.contains(.bold) == true)
+        let openMarker = ns.range(of: "**").location
+        #expect(s.attribute(MarkdownAttribute.marker, at: openMarker, effectiveRange: nil) as? Bool == true)
+    }
+
+    @Test("links and code inside task items render")
+    func listItemLinkAndCode() {
+        let text = "- [x] see [site](https://e.co) and `cmd`"
+        let s = storage(text)
+        let h = SyntaxHighlighter(parser: MarkdownParser())
+        h.apply(to: s, context: makeContext())
+        let ns = text as NSString
+        let linkLoc = ns.range(of: "site").location
+        #expect(s.attribute(.link, at: linkLoc, effectiveRange: nil) != nil)
+        let codeLoc = ns.range(of: "cmd").location
+        #expect(s.attribute(.backgroundColor, at: codeLoc, effectiveRange: nil) != nil)
+    }
+
     @Test("table alignment row hides and is tagged for the drawn rule")
     func tableSeparatorTagged() {
         let text = "| A | B |\n|---|---|\n| 1 | 2 |"
