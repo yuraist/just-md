@@ -48,8 +48,10 @@ nonisolated enum MarkerVisibility {
 /// This replaces the earlier `setGlyphs`-override attempt that produced
 /// garbled glyphs: the delegate hook is the documented customization point,
 /// and we re-submit the *original* glyphs with only the properties changed.
-@MainActor
-final class MarkerVisibilityController: NSObject {
+///
+/// `nonisolated` like the rest of the TextKit stack (background layout is
+/// disabled; everything runs on the main thread in practice).
+nonisolated final class MarkerVisibilityController: NSObject {
 
     weak var layoutManager: NSLayoutManager?
 
@@ -86,7 +88,7 @@ final class MarkerVisibilityController: NSObject {
     }
 }
 
-extension MarkerVisibilityController: @preconcurrency NSLayoutManagerDelegate {
+extension MarkerVisibilityController: NSLayoutManagerDelegate {
 
     nonisolated static let hiddenProperty = NSLayoutManager.GlyphProperty.null
 

@@ -6,7 +6,7 @@ final class MarkdownTextView: NSTextView {
     private(set) var markerVisibility: MarkerVisibilityController?
 
     convenience init(storage: MarkdownTextStorage) {
-        let layoutManager = NSLayoutManager()
+        let layoutManager = MarkdownLayoutManager()
         storage.addLayoutManager(layoutManager)
         let container = NSTextContainer(size: NSSize(width: 720, height: CGFloat.greatestFiniteMagnitude))
         container.widthTracksTextView = true
@@ -21,6 +21,7 @@ final class MarkdownTextView: NSTextView {
         visibility.layoutManager = layoutManager
         layoutManager.delegate = visibility
         layoutManager.backgroundLayoutEnabled = false
+        layoutManager.visibility = visibility
         self.markerVisibility = visibility
 
         self.isRichText = false

@@ -87,13 +87,68 @@ struct SyntaxHighlighterTests {
         #expect(style?.firstLineHeadIndent ?? 0 > 0)
     }
 
-    @Test("list item bullets are marked as marker")
+    @Test("list item bullets stay visible: accent tint, no hide marker")
     func listItemMarker() {
         let s = storage("- one\n- two\n")
         let h = SyntaxHighlighter(parser: MarkdownParser())
         h.apply(to: s, context: makeContext())
         let isMarker = s.attribute(MarkdownAttribute.marker, at: 0, effectiveRange: nil) as? Bool
-        #expect(isMarker == true)
+        #expect(isMarker != true)
+        let color = s.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor
+        #expect(color == NSColor.controlAccentColor)
+    }
+
+    @Test("list items hang wrapped lines under the text column")
+    func listHangingIndent() {
+        let s = storage("- one\n- two\n")
+        let h = SyntaxHighlighter(parser: MarkdownParser())
+        h.apply(to: s, context: makeContext())
+        let style = s.attribute(.paragraphStyle, at: 3, effectiveRange: nil) as? NSParagraphStyle
+        #expect((style?.headIndent ?? 0) > 0)
+    }
+
+    @Test("horizontal rule is hidden and tagged for drawing")
+    func thematicBreakTagged() {
+        let s = storage("above\n\n---\n\nbelow")
+        let h = SyntaxHighlighter(parser: MarkdownParser())
+        h.apply(to: s, context: makeContext())
+        let hrLoc = ("above\n\n" as NSString).length
+        #expect(s.attribute(MarkdownAttribute.marker, at: hrLoc, effectiveRange: nil) as? Bool == true)
+        #expect(s.attribute(MarkdownAttribute.thematicBreak, at: hrLoc, effectiveRange: nil) as? Bool == true)
+    }
+
+    @Test("blockquote leading > markers hide, range tagged for the bar")
+    func blockquoteMarkers() {
+        let s = storage("> a quote")
+        let h = SyntaxHighlighter(parser: MarkdownParser())
+        h.apply(to: s, context: makeContext())
+        #expect(s.attribute(MarkdownAttribute.marker, at: 0, effectiveRange: nil) as? Bool == true)
+        #expect(s.attribute(MarkdownAttribute.marker, at: 1, effectiveRange: nil) as? Bool == true)
+        #expect(s.attribute(MarkdownAttribute.marker, at: 2, effectiveRange: nil) as? Bool != true)
+        #expect(s.attribute(MarkdownAttribute.blockQuote, at: 4, effectiveRange: nil) as? Bool == true)
+    }
+
+    @Test("code fence lines carry no background band")
+    func fenceNoBackground() {
+        let s = storage("```swift\nlet x = 1\n```")
+        let h = SyntaxHighlighter(parser: MarkdownParser())
+        h.apply(to: s, context: makeContext())
+        #expect(s.attribute(.backgroundColor, at: 0, effectiveRange: nil) == nil)
+        let contentLoc = ("```swift\n" as NSString).length + 1
+        #expect(s.attribute(.backgroundColor, at: contentLoc, effectiveRange: nil) != nil)
+    }
+
+    @Test("table pipes are dimmed but not hidden")
+    func tablePipesDimmed() {
+        let s = storage("| A | B |\n|---|---|\n| 1 | 2 |")
+        let h = SyntaxHighlighter(parser: MarkdownParser())
+        h.apply(to: s, context: makeContext())
+        let pipeColor = s.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor
+        #expect(pipeColor == NSColor.secondaryLabelColor)
+        #expect(s.attribute(MarkdownAttribute.marker, at: 0, effectiveRange: nil) as? Bool != true)
+        // Cell content keeps the text color.
+        let cellColor = s.attribute(.foregroundColor, at: 2, effectiveRange: nil) as? NSColor
+        #expect(cellColor == NSColor.labelColor)
     }
 
     @Test("bold span gets bold font")

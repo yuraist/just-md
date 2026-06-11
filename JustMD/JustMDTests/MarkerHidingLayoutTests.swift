@@ -84,7 +84,12 @@ struct MarkerHidingLayoutTests {
         ## Second heading
 
         - First bullet
-        - Second bullet
+        - Second bullet with a much longer text that should wrap onto the \
+        following line and hang under the text column, not under the bullet
+        - [ ] Open task
+        - [x] Done task
+
+        ---
 
         > Quoted line.
 

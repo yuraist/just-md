@@ -4,6 +4,11 @@ nonisolated enum MarkdownAttribute {
     static let marker = NSAttributedString.Key("com.justmd.marker")
     static let headingHash = NSAttributedString.Key("com.justmd.headingHash")
     static let codeLanguage = NSAttributedString.Key("com.justmd.codeLanguage")
+    /// Tagged on `---` ranges; the layout manager draws a separator rule when
+    /// the raw dashes are hidden.
+    static let thematicBreak = NSAttributedString.Key("com.justmd.thematicBreak")
+    /// Tagged on blockquote ranges; the layout manager draws the accent bar.
+    static let blockQuote = NSAttributedString.Key("com.justmd.blockQuote")
 }
 
 nonisolated struct HighlightContext {
@@ -156,6 +161,15 @@ nonisolated final class SyntaxHighlighter {
             }
             for fenceRange in fenceRanges where NSMaxRange(fenceRange) <= storage.length {
                 storage.addAttribute(MarkdownAttribute.marker, value: true, range: fenceRange)
+                // Hidden fence lines must not paint an empty background band —
+                // including their trailing newline, which alone is enough for
+                // TextKit to fill the whole line fragment.
+                var clear = fenceRange
+                if NSMaxRange(clear) < storage.length,
+                   (storage.string as NSString).character(at: NSMaxRange(clear)) == 0x0A {
+                    clear.length += 1
+                }
+                storage.removeAttribute(.backgroundColor, range: clear)
             }
             if let language, !language.isEmpty, NSMaxRange(contentRange) <= storage.length {
                 storage.addAttribute(MarkdownAttribute.codeLanguage, value: language, range: contentRange)
@@ -180,24 +194,43 @@ nonisolated final class SyntaxHighlighter {
         case .blockQuote(let range):
             guard NSMaxRange(range) <= storage.length else { break }
             storage.addAttribute(.foregroundColor, value: context.secondaryColor, range: range)
+            storage.addAttribute(MarkdownAttribute.blockQuote, value: true, range: range)
             let style = NSMutableParagraphStyle()
             style.firstLineHeadIndent = 16
             style.headIndent = 16
             storage.addAttribute(.paragraphStyle, value: style, range: range)
+            tagBlockquoteMarkers(in: range, source: source, storage: storage)
 
         case .list(_, let items, _):
+            // Bullets/numbers stay visible (accent-tinted) — hiding them would
+            // leave bullet-less lines. Wrapped lines hang under the text, not
+            // under the marker.
+            let ns = source as NSString
             for item in items where NSMaxRange(item.markerRange) <= storage.length {
-                storage.addAttribute(MarkdownAttribute.marker, value: true, range: item.markerRange)
+                storage.addAttribute(.foregroundColor, value: context.accentColor, range: item.markerRange)
+                let lineStart = ns.lineRange(for: NSRange(location: item.markerRange.location, length: 0)).location
+                let prefixRange = NSRange(location: lineStart, length: NSMaxRange(item.markerRange) - lineStart)
+                guard prefixRange.length > 0, NSMaxRange(prefixRange) <= ns.length else { continue }
+                let prefix = ns.substring(with: prefixRange)
+                let indent = (prefix as NSString).size(withAttributes: [.font: context.baseFont]).width
+                let style = NSMutableParagraphStyle()
+                style.headIndent = indent
+                if NSMaxRange(item.range) <= storage.length {
+                    storage.addAttribute(.paragraphStyle, value: style, range: item.range)
+                }
             }
 
         case .thematicBreak(let range):
             if NSMaxRange(range) <= storage.length {
                 storage.addAttribute(.foregroundColor, value: context.secondaryColor, range: range)
+                storage.addAttribute(MarkdownAttribute.marker, value: true, range: range)
+                storage.addAttribute(MarkdownAttribute.thematicBreak, value: true, range: range)
             }
 
         case .table(let range):
             if NSMaxRange(range) <= storage.length {
                 storage.addAttribute(.font, value: context.codeFont, range: range)
+                dimTableChrome(in: range, source: source, storage: storage, context: context)
             }
 
         case .html:
@@ -213,6 +246,81 @@ nonisolated final class SyntaxHighlighter {
             }
         default:
             break
+        }
+    }
+
+    // MARK: - Block chrome helpers
+
+    /// Tags the leading `>` markers of every blockquote line so they hide off
+    /// the active paragraph (the drawn accent bar carries the meaning).
+    private func tagBlockquoteMarkers(in range: NSRange, source: String, storage: NSTextStorage) {
+        let gt: UInt16 = 0x3E      // >
+        let space: UInt16 = 0x20
+        let ns = source as NSString
+        var loc = range.location
+        let upper = min(NSMaxRange(range), ns.length)
+        while loc < upper {
+            let line = ns.lineRange(for: NSRange(location: loc, length: 0))
+            var i = line.location
+            var markerEnd = i
+            var leadingSpaces = 0
+            scan: while i < min(NSMaxRange(line), upper) {
+                switch ns.character(at: i) {
+                case gt:
+                    leadingSpaces = 0
+                    i += 1
+                    // A single space after `>` belongs to the marker.
+                    if i < NSMaxRange(line), ns.character(at: i) == space { i += 1 }
+                    markerEnd = i
+                case space where leadingSpaces < 3 && markerEnd == line.location:
+                    leadingSpaces += 1
+                    i += 1
+                default:
+                    break scan
+                }
+            }
+            if markerEnd > line.location {
+                let markerRange = NSRange(location: line.location, length: markerEnd - line.location)
+                storage.addAttribute(MarkdownAttribute.marker, value: true, range: markerRange)
+            }
+            loc = NSMaxRange(line)
+        }
+    }
+
+    /// Dims table pipes and the alignment row. They stay visible — alignment
+    /// depends on them — but recede behind the cell content.
+    private func dimTableChrome(in range: NSRange, source: String, storage: NSTextStorage, context: HighlightContext) {
+        let pipe: UInt16 = 0x7C    // |
+        let dash: UInt16 = 0x2D    // -
+        let colon: UInt16 = 0x3A   // :
+        let space: UInt16 = 0x20
+        let lf: UInt16 = 0x0A
+        let cr: UInt16 = 0x0D
+        let ns = source as NSString
+        var loc = range.location
+        let upper = min(NSMaxRange(range), ns.length)
+        while loc < upper {
+            let line = ns.lineRange(for: NSRange(location: loc, length: 0))
+            let lineEnd = min(NSMaxRange(line), upper)
+            var isAlignmentRow = true
+            var i = line.location
+            while i < lineEnd {
+                let c = ns.character(at: i)
+                if c == pipe {
+                    storage.addAttribute(.foregroundColor, value: context.secondaryColor, range: NSRange(location: i, length: 1))
+                } else if c != dash && c != colon && c != space && c != lf && c != cr {
+                    isAlignmentRow = false
+                }
+                i += 1
+            }
+            if isAlignmentRow, lineEnd > line.location {
+                storage.addAttribute(
+                    .foregroundColor,
+                    value: context.secondaryColor,
+                    range: NSRange(location: line.location, length: lineEnd - line.location)
+                )
+            }
+            loc = NSMaxRange(line)
         }
     }
 
