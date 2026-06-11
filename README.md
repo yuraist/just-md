@@ -2,7 +2,7 @@
 
 A native macOS markdown editor. Open a `.md` file and the syntax disappears: markers hide on every line except the one you're editing (Bear-style), links show their text only, lists get real bullets, rules become hairlines. Flip to **Read mode** (⇧⌘E) for a fully rendered view with real table grids, checkboxes, and inline images. No file browser, no cloud, no sync, no tabs, no sidebars — inspired by Bear, iA Writer, and Medium.
 
-> **Status:** v0.2 — post-rework. See [`docs/product.md`](docs/product.md) for what it does; [`docs/known-issues.md`](docs/known-issues.md) for what's still open.
+> **Status:** 1.0 candidate — feature-complete, release work remains. See [`docs/roadmap.md`](docs/roadmap.md) for what's done, the mini-roadmap, and the production-readiness checklist; [`docs/distribution.md`](docs/distribution.md) for App Store / direct-download shipping options; [`docs/known-issues.md`](docs/known-issues.md) for open non-blockers.
 
 ## Requirements
 
@@ -47,7 +47,7 @@ Implementation plans: [`docs/plans/2026-04-18-just-md-implementation.md`](docs/p
 
 ## Tests
 
-112 tests as of the 2026-06 editor rework. Swift Testing (`@Test`, `@Suite`, `#expect`).
+124 tests as of the 2026-06 editor rework. Swift Testing (`@Test`, `@Suite`, `#expect`).
 
 Run: `xcodebuild ... -only-testing:JustMDTests test`.
 
