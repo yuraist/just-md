@@ -128,6 +128,54 @@ struct MarkerHidingLayoutTests {
         #expect(boxX < 10)
     }
 
+    @Test("toggling a task checkbox flips the source state char only")
+    func checkboxToggle() throws {
+        let text = "- [ ] open\n- [x] done"
+        let (view, storage) = makeEditor(text)
+        _ = try #require(view.layoutManager)
+
+        view.toggleTaskCheckbox(atDash: 0)
+        #expect(storage.string == "- [x] open\n- [x] done")
+
+        let secondDash = (storage.string as NSString).range(of: "- [x] done").location
+        view.toggleTaskCheckbox(atDash: secondDash)
+        #expect(storage.string == "- [x] open\n- [ ] done")
+
+        // Toggle back.
+        view.toggleTaskCheckbox(atDash: 0)
+        #expect(storage.string == "- [ ] open\n- [ ] done")
+    }
+
+    @Test("checkbox hit test finds the box off the active line and misses elsewhere")
+    func checkboxHitTest() throws {
+        let text = "- [ ] open\n\npara"
+        let (view, _) = makeEditor(text)
+        let lm = try #require(view.layoutManager)
+        let container = try #require(view.textContainer)
+        let ns = text as NSString
+
+        view.setSelectedRange(NSRange(location: ns.range(of: "para").location, length: 0))
+        lm.ensureLayout(for: container)
+
+        // Point at the checkbox glyph (char 0 carries the substituted box).
+        let boxGlyph = lm.glyphIndexForCharacter(at: 0)
+        let boxRect = lm.boundingRect(forGlyphRange: NSRange(location: boxGlyph, length: 1), in: container)
+        let inset = view.textContainerOrigin
+        let boxPoint = NSPoint(x: boxRect.midX + inset.x, y: boxRect.midY + inset.y)
+        #expect(view.checkboxDashIndex(at: boxPoint) == 0)
+
+        // A point on the task's text is not a checkbox hit.
+        let textGlyph = lm.glyphIndexForCharacter(at: ns.range(of: "open").location)
+        let textRect = lm.boundingRect(forGlyphRange: NSRange(location: textGlyph, length: 1), in: container)
+        let textPoint = NSPoint(x: textRect.midX + inset.x, y: textRect.midY + inset.y)
+        #expect(view.checkboxDashIndex(at: textPoint) == nil)
+
+        // With the caret on the task line the raw markdown shows — no hit.
+        view.setSelectedRange(NSRange(location: 2, length: 0))
+        lm.ensureLayout(for: container)
+        #expect(view.checkboxDashIndex(at: boxPoint) == nil)
+    }
+
     @Test("quote bar geometry sits on the quote line, not the blank line above")
     func quoteBarGeometry() throws {
         let text = "intro\n\n> A quoted line"
