@@ -151,6 +151,49 @@ struct SyntaxHighlighterTests {
         #expect(cellColor == NSColor.labelColor)
     }
 
+    @Test("table alignment row hides and is tagged for the drawn rule")
+    func tableSeparatorTagged() {
+        let text = "| A | B |\n|---|---|\n| 1 | 2 |"
+        let s = storage(text)
+        let h = SyntaxHighlighter(parser: MarkdownParser())
+        h.apply(to: s, context: makeContext())
+        let sepLoc = (text as NSString).range(of: "|---|---|").location
+        #expect(s.attribute(MarkdownAttribute.marker, at: sepLoc, effectiveRange: nil) as? Bool == true)
+        #expect(s.attribute(MarkdownAttribute.tableSeparator, at: sepLoc, effectiveRange: nil) as? Bool == true)
+    }
+
+    @Test("table header row is bold")
+    func tableHeaderBold() {
+        let s = storage("| A | B |\n|---|---|\n| 1 | 2 |")
+        let h = SyntaxHighlighter(parser: MarkdownParser())
+        h.apply(to: s, context: makeContext())
+        let headerFont = s.attribute(.font, at: 2, effectiveRange: nil) as? NSFont
+        #expect(headerFont?.fontDescriptor.symbolicTraits.contains(.bold) == true)
+        let bodyLoc = ("| A | B |\n|---|---|\n| " as NSString).length
+        let bodyFont = s.attribute(.font, at: bodyLoc, effectiveRange: nil) as? NSFont
+        #expect(bodyFont?.fontDescriptor.symbolicTraits.contains(.bold) != true)
+    }
+
+    @Test("table cells get kern padding that equalizes column widths")
+    func tableKernAlignment() {
+        // "Ada" is wider than "1" — the body cell must carry kern equal to
+        // the pixel difference so the closing pipes align.
+        let text = "| Ada | Role |\n|-----|------|\n| 1 | 2 |"
+        let s = storage(text)
+        let h = SyntaxHighlighter(parser: MarkdownParser())
+        let ctx = makeContext()
+        h.apply(to: s, context: ctx)
+        let ns = text as NSString
+        let measure: [NSAttributedString.Key: Any] = [.font: ctx.codeFont]
+        let headerWidth = (" Ada " as NSString).size(withAttributes: measure).width
+        let bodyWidth = (" 1 " as NSString).size(withAttributes: measure).width
+        // Kern lands on the last char of the narrower cell (the space in " 1 ").
+        let bodyCellEnd = ns.range(of: "| 1 |").location + 3  // index of trailing space
+        let kern = s.attribute(.kern, at: bodyCellEnd, effectiveRange: nil) as? CGFloat
+        #expect(kern != nil)
+        #expect(abs((kern ?? 0) - (headerWidth - bodyWidth)) < 0.5)
+    }
+
     @Test("bold span gets bold font")
     func boldSpan() {
         let s = storage("hello **world**")

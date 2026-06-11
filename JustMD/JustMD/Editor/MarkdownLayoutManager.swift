@@ -7,6 +7,19 @@ nonisolated final class MarkdownLayoutManager: NSLayoutManager {
 
     weak var visibility: MarkerVisibilityController?
 
+    /// Line-fragment rect of a line whose visible characters are all hidden
+    /// (HR dashes, table alignment row). Anchored on the trailing newline's
+    /// glyph — newlines are never hidden and always belong to their own line,
+    /// while `boundingRect(forGlyphRange:)` drifts to the line above when the
+    /// leading glyphs are `.null`.
+    func hiddenLineRect(forCharacterRange range: NSRange) -> CGRect? {
+        guard let storage = textStorage, storage.length > 0 else { return nil }
+        let anchorChar = min(NSMaxRange(range), storage.length - 1)
+        let glyph = glyphIndexForCharacter(at: anchorChar)
+        guard glyph < numberOfGlyphs else { return nil }
+        return lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil)
+    }
+
     /// Union of the line-fragment rects that contain *visible* glyphs of the
     /// range. `boundingRect(forGlyphRange:)` mis-reports ranges whose leading
     /// glyphs are `.null` (hidden markers) — it lands on the line above.
@@ -38,9 +51,8 @@ nonisolated final class MarkdownLayoutManager: NSLayoutManager {
         // active the dimmed dashes show instead, so skip drawing.
         storage.enumerateAttribute(MarkdownAttribute.thematicBreak, in: charRange, options: []) { value, range, _ in
             guard value as? Bool == true,
-                  NSIntersectionRange(range, active).length == 0 else { return }
-            let glyphs = glyphRange(forCharacterRange: range, actualCharacterRange: nil)
-            let rect = boundingRect(forGlyphRange: glyphs, in: container)
+                  NSIntersectionRange(range, active).length == 0,
+                  let rect = hiddenLineRect(forCharacterRange: range) else { return }
             let y = (rect.midY + origin.y).rounded() + 0.5
             let line = NSRect(
                 x: origin.x + padding,
@@ -48,6 +60,25 @@ nonisolated final class MarkdownLayoutManager: NSLayoutManager {
                 width: container.size.width - padding * 2,
                 height: 1
             )
+            secondary.withAlphaComponent(0.35).setFill()
+            line.fill()
+        }
+
+        // Table separator: the hidden alignment row draws as a rule spanning
+        // the table's width (taken from the header line right above).
+        storage.enumerateAttribute(MarkdownAttribute.tableSeparator, in: charRange, options: []) { value, range, _ in
+            guard value as? Bool == true,
+                  NSIntersectionRange(range, active).length == 0,
+                  let rect = hiddenLineRect(forCharacterRange: range) else { return }
+            var width = container.size.width - padding * 2
+            if range.location >= 2 {
+                let headerGlyph = glyphIndexForCharacter(at: range.location - 2)
+                if headerGlyph < numberOfGlyphs {
+                    width = lineFragmentUsedRect(forGlyphAt: headerGlyph, effectiveRange: nil).width
+                }
+            }
+            let y = (rect.midY + origin.y).rounded() + 0.5
+            let line = NSRect(x: origin.x + padding, y: y, width: width, height: 1)
             secondary.withAlphaComponent(0.35).setFill()
             line.fill()
         }

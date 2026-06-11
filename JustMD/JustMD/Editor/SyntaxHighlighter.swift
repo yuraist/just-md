@@ -15,6 +15,9 @@ nonisolated enum MarkdownAttribute {
     /// Tagged on the `[` of a task item, value = Bool (checked); rendered as
     /// ☑/□ off the active paragraph.
     static let taskCheckbox = NSAttributedString.Key("com.justmd.taskCheckbox")
+    /// Tagged on a table's alignment row (`|---|---|`); hidden off the active
+    /// paragraph and drawn as a horizontal rule by the layout manager.
+    static let tableSeparator = NSAttributedString.Key("com.justmd.tableSeparator")
 }
 
 nonisolated struct HighlightContext {
@@ -252,7 +255,7 @@ nonisolated final class SyntaxHighlighter {
         case .table(let range):
             if NSMaxRange(range) <= storage.length {
                 storage.addAttribute(.font, value: context.codeFont, range: range)
-                dimTableChrome(in: range, source: source, storage: storage, context: context)
+                styleTable(in: range, source: source, storage: storage, context: context)
             }
 
         case .html:
@@ -357,9 +360,12 @@ nonisolated final class SyntaxHighlighter {
         }
     }
 
-    /// Dims table pipes and the alignment row. They stay visible — alignment
-    /// depends on them — but recede behind the cell content.
-    private func dimTableChrome(in range: NSRange, source: String, storage: NSTextStorage, context: HighlightContext) {
+    /// Editor-mode table presentation, without touching the text: pipes dim,
+    /// the alignment row hides (a rule is drawn in its place), the header row
+    /// goes bold, and cells get `.kern` padding on their last character so
+    /// the pipes line up column-by-column across rows — the mono font makes
+    /// the result read as a real grid.
+    private func styleTable(in range: NSRange, source: String, storage: NSTextStorage, context: HighlightContext) {
         let pipe: UInt16 = 0x7C    // |
         let dash: UInt16 = 0x2D    // -
         let colon: UInt16 = 0x3A   // :
@@ -367,30 +373,93 @@ nonisolated final class SyntaxHighlighter {
         let lf: UInt16 = 0x0A
         let cr: UInt16 = 0x0D
         let ns = source as NSString
-        var loc = range.location
         let upper = min(NSMaxRange(range), ns.length)
+
+        struct TableRow {
+            var line: NSRange
+            var pipes: [Int]
+            var isAlignment: Bool
+        }
+        var rows: [TableRow] = []
+        var loc = range.location
         while loc < upper {
             let line = ns.lineRange(for: NSRange(location: loc, length: 0))
             let lineEnd = min(NSMaxRange(line), upper)
-            var isAlignmentRow = true
+            var pipes: [Int] = []
+            var isAlignment = true
             var i = line.location
             while i < lineEnd {
                 let c = ns.character(at: i)
                 if c == pipe {
-                    storage.addAttribute(.foregroundColor, value: context.secondaryColor, range: NSRange(location: i, length: 1))
+                    pipes.append(i)
                 } else if c != dash && c != colon && c != space && c != lf && c != cr {
-                    isAlignmentRow = false
+                    isAlignment = false
                 }
                 i += 1
             }
-            if isAlignmentRow, lineEnd > line.location {
-                storage.addAttribute(
-                    .foregroundColor,
-                    value: context.secondaryColor,
-                    range: NSRange(location: line.location, length: lineEnd - line.location)
-                )
-            }
+            rows.append(TableRow(
+                line: NSRange(location: line.location, length: max(0, lineEnd - line.location)),
+                pipes: pipes,
+                isAlignment: isAlignment && !pipes.isEmpty
+            ))
             loc = NSMaxRange(line)
+        }
+
+        let firstAlignmentIndex = rows.firstIndex(where: { $0.isAlignment })
+        for (r, row) in rows.enumerated() {
+            for p in row.pipes {
+                storage.addAttribute(.foregroundColor, value: context.secondaryColor, range: NSRange(location: p, length: 1))
+            }
+            if row.isAlignment {
+                // Exclude the trailing newline: it anchors the (collapsed)
+                // line's fragment so the rule can be drawn in its place.
+                var content = row.line
+                if content.length > 0, ns.character(at: NSMaxRange(content) - 1) == lf {
+                    content.length -= 1
+                }
+                guard content.length > 0 else { continue }
+                storage.addAttribute(.foregroundColor, value: context.secondaryColor, range: content)
+                storage.addAttribute(MarkdownAttribute.marker, value: true, range: content)
+                storage.addAttribute(MarkdownAttribute.tableSeparator, value: true, range: content)
+            } else if let sep = firstAlignmentIndex, r < sep, row.line.length > 0 {
+                // Header rows sit above the alignment row.
+                storage.addAttribute(.font, value: font(context.codeFont, addingTraits: .bold), range: row.line)
+            }
+        }
+
+        // Column alignment: pad each cell's trailing character with kern so
+        // every closing pipe lands at the column's max content width. Mono
+        // font means bold headers measure the same as body cells.
+        let measure: [NSAttributedString.Key: Any] = [.font: context.codeFont]
+        struct Cell {
+            var column: Int
+            var content: NSRange
+            var width: CGFloat
+        }
+        var columnWidths: [CGFloat] = []
+        var cells: [Cell] = []
+        for row in rows where !row.isAlignment && row.pipes.count >= 2 {
+            for k in 0..<(row.pipes.count - 1) {
+                let start = row.pipes[k] + 1
+                let length = row.pipes[k + 1] - start
+                let text = length > 0 ? ns.substring(with: NSRange(location: start, length: length)) : ""
+                let width = (text as NSString).size(withAttributes: measure).width
+                if k >= columnWidths.count {
+                    columnWidths.append(width)
+                } else {
+                    columnWidths[k] = max(columnWidths[k], width)
+                }
+                cells.append(Cell(column: k, content: NSRange(location: start, length: length), width: width))
+            }
+        }
+        for cell in cells {
+            let pad = columnWidths[cell.column] - cell.width
+            guard pad > 0.01 else { continue }
+            let target = cell.content.length > 0
+                ? NSRange(location: NSMaxRange(cell.content) - 1, length: 1)
+                : NSRange(location: cell.content.location - 1, length: 1)  // empty cell: pad the pipe
+            guard target.location >= 0, NSMaxRange(target) <= storage.length else { continue }
+            storage.addAttribute(.kern, value: pad, range: target)
         }
     }
 

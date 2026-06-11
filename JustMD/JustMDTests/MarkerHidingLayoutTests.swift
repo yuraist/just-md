@@ -208,9 +208,10 @@ struct MarkerHidingLayoutTests {
         let x = 1
         ```
 
-        | A | B |
-        |---|---|
-        | 1 | 2 |
+        | Name | Role |
+        |------|------|
+        | Ada | Engineer |
+        | Lin | Designer |
         """
         let (view, _) = makeEditor(demo)
         view.setSelectedRange(NSRange(location: 3, length: 0))
