@@ -1,5 +1,38 @@
 # Distribution
 
+## Release state (2026-06-11)
+
+Done by automation:
+
+- ✅ Bundle ID `com.nuta.JustMD` registered on the developer portal (via ASC
+  API + `scripts/asc-jwt.py`; bundle-ID resource id `23N89WX93Z`)
+- ✅ App Store build exported: `build/export-appstore/JustMD.pkg` — universal,
+  cloud-signed (Apple Distribution), sandbox + hardened runtime; the
+  Info.plist-in-Resources validation risk fixed in the pbxproj
+- ✅ Screenshots: `marketing/screenshots/appstore-{1,2}-*.png` (2880×1800,
+  regenerable via the `AppStoreScreenshots` test suite)
+- ✅ Listing texts ready: `docs/appstore-metadata.md`
+- ✅ Landing + privacy policy live in the public `yuraist/justmd` repo
+  (GitHub Pages)
+
+Blocked on owner-only steps:
+
+1. **Create the app record** — appstoreconnect.apple.com → My Apps → New App
+   (macOS, bundle `com.nuta.JustMD`; names in `docs/appstore-metadata.md`).
+   The API cannot create app records. Then upload is one command:
+   `xcrun altool --upload-app -f build/export-appstore/JustMD.pkg -t macos
+   --apiKey 3PCCY7B92H --apiIssuer <issuer>` (verified working up to the
+   missing-record error).
+2. **Developer ID certificate** — cloud signing returned a permission error
+   (only the Account Holder may create Developer ID certs). Xcode →
+   Settings → Accounts → Manage Certificates → ＋ → Developer ID Application;
+   then `xcodebuild -exportArchive … -exportOptionsPlist
+   scripts/ExportOptionsDevID.plist` + notarytool + DMG.
+3. **GitHub Pages domain** — the account-wide custom domain `app.nuta.life`
+   is dead (DNS gone), so every Pages URL redirects to it. Either renew the
+   domain or remove `CNAME` from the `yuraist.github.io` repo; the landing
+   then serves at `https://yuraist.github.io/justmd/`.
+
 How to get JustMD 1.0 into users' hands. Two channels, not mutually exclusive —
 many indie Mac apps ship both. Current project state already satisfies the hard
 requirements for either: sandbox ON, hardened runtime ON, signed icon set,
