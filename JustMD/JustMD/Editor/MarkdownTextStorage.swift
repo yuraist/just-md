@@ -6,13 +6,17 @@ nonisolated final class MarkdownTextStorage: NSTextStorage {
     var highlighter: SyntaxHighlighter?
     var highlightContext: HighlightContext?
 
-    private var pendingHighlight: DispatchWorkItem?
-    /// Highlight runs on the main queue because `HighlightContext` holds `NSColor`
-    /// values that resolve via `NSAppearance`, which must be touched from the main
-    /// thread. The storage itself is `nonisolated` so the Swift 6 compiler
-    /// accepts `self` captures from a `DispatchWorkItem`.
-    private let highlightQueue = DispatchQueue.main
-    private static let debounceInterval: DispatchTimeInterval = .milliseconds(200)
+    /// Blocks produced by the most recent highlight pass. Used to diff against
+    /// the next parse (incremental restyling) and to re-locate code blocks when
+    /// async token coloring lands.
+    private(set) var currentBlocks: [Block]?
+
+    /// Accumulated character range touched since the last highlight pass
+    /// (post-edit coordinates) and the net length change.
+    private var dirtyRange: NSRange?
+    private var dirtyDelta = 0
+
+    private var highlightScheduled = false
     private var isHighlighting = false
 
     override var string: String { backing.string }
@@ -36,33 +40,77 @@ nonisolated final class MarkdownTextStorage: NSTextStorage {
     }
 
     override func processEditing() {
+        // Capture before super — the edited* properties reset afterwards.
+        let mask = editedMask
+        let range = editedRange
+        let delta = changeInLength
         super.processEditing()
-        guard !isHighlighting, highlighter != nil, highlightContext != nil else { return }
+        guard !isHighlighting, mask.contains(.editedCharacters) else { return }
+        accumulateDirty(range: range, delta: delta)
+        guard highlighter != nil, highlightContext != nil else { return }
         scheduleHighlight()
     }
 
-    private func scheduleHighlight() {
-        pendingHighlight?.cancel()
-        let work = DispatchWorkItem { [weak self] in
-            self?.runHighlight()
+    private func accumulateDirty(range: NSRange, delta: Int) {
+        dirtyDelta += delta
+        guard let existing = dirtyRange else {
+            dirtyRange = range
+            return
         }
-        pendingHighlight = work
-        highlightQueue.asyncAfter(deadline: .now() + Self.debounceInterval, execute: work)
+        // `existing` is in pre-this-edit coordinates; shift the part at/after
+        // the edit point by this edit's delta, then union with the new range.
+        var start = existing.location
+        var end = NSMaxRange(existing)
+        if start >= range.location { start = max(range.location, start + delta) }
+        if end > range.location { end = max(range.location, end + delta) }
+        start = min(start, range.location)
+        end = max(end, NSMaxRange(range))
+        dirtyRange = NSRange(location: max(0, start), length: max(0, end - start))
+    }
+
+    /// Highlighting is deferred to the next runloop pass: edits within one
+    /// event (typing burst, paste) coalesce, and the pass runs before the next
+    /// frame draws — visually instant, unlike the previous 200 ms debounce.
+    /// Scheduled on the runloop (in `.common` modes) rather than the main GCD
+    /// queue so it also fires during event-tracking (drag/scroll) and inside
+    /// nested runloop spins.
+    private func scheduleHighlight() {
+        guard !highlightScheduled else { return }
+        highlightScheduled = true
+        RunLoop.main.perform(inModes: [.common]) { [weak self] in
+            guard let self else { return }
+            self.highlightScheduled = false
+            self.runHighlight()
+        }
     }
 
     private func runHighlight() {
         guard let highlighter, let highlightContext else { return }
         guard !isHighlighting else { return }
+        // A stale scheduled tick after a forced synchronous pass has nothing to do.
+        if dirtyRange == nil, currentBlocks != nil { return }
         isHighlighting = true
-        highlighter.apply(to: self, context: highlightContext)
+        let edited = dirtyRange
+        let delta = dirtyDelta
+        dirtyRange = nil
+        dirtyDelta = 0
+        currentBlocks = highlighter.apply(
+            to: self,
+            context: highlightContext,
+            previousBlocks: currentBlocks,
+            editedRange: edited,
+            delta: delta
+        )
         isHighlighting = false
     }
 
-    /// Apply highlighting synchronously. Used on initial load to avoid a blank
-    /// flash while the 200ms debounce window elapses.
+    /// Apply highlighting synchronously over the whole document. Used on
+    /// initial load and theme/font changes, where every attribute depends on
+    /// the new context.
     func applyHighlightingNow() {
-        pendingHighlight?.cancel()
-        pendingHighlight = nil
+        currentBlocks = nil
+        dirtyRange = nil
+        dirtyDelta = 0
         runHighlight()
     }
 }

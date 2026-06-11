@@ -170,11 +170,17 @@ struct SyntaxHighlighterTests {
     }
 
     @Test("fenced code block applies syntax highlighting")
-    func fencedCodeBlockHighlighted() {
+    func fencedCodeBlockHighlighted() async {
         let swiftSnippet = "func greet(name: String) -> String { return \"Hello, \\(name)!\" }"
         let s = storage("```swift\n\(swiftSnippet)\n```")
         let h = SyntaxHighlighter(parser: MarkdownParser())
-        h.codeHighlighter = CodeBlockHighlighter()
+        let codeHighlighter = CodeBlockHighlighter()
+        h.codeHighlighter = codeHighlighter
+        // Token coloring is async on cache miss; pre-warm the cache so apply()
+        // takes the synchronous overlay path.
+        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            codeHighlighter.highlightAsync(swiftSnippet, language: "swift") { _ in cont.resume() }
+        }
         h.apply(to: s, context: makeContext())
         let prefix = ("```swift\n" as NSString).length
         let contentLen = (swiftSnippet as NSString).length

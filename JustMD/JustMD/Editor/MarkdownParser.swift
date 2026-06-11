@@ -6,7 +6,7 @@ nonisolated struct ParsedMarkdown: Sendable {
     let blocks: [Block]
 }
 
-nonisolated enum Block: Sendable {
+nonisolated enum Block: Sendable, Equatable {
     case paragraph(range: NSRange)
     case heading(level: Int, range: NSRange, markerRange: NSRange)
     case codeBlock(language: String?, range: NSRange, contentRange: NSRange, fenceRanges: [NSRange])
@@ -17,10 +17,55 @@ nonisolated enum Block: Sendable {
     case html(range: NSRange)
 }
 
-nonisolated struct ListItem: Sendable {
+nonisolated struct ListItem: Sendable, Equatable {
     let range: NSRange
     let markerRange: NSRange
     let taskState: TaskState?
+}
+
+nonisolated extension Block {
+    /// The block's full character range in the source.
+    var range: NSRange {
+        switch self {
+        case .paragraph(let r), .blockQuote(let r), .thematicBreak(let r), .table(let r), .html(let r):
+            return r
+        case .heading(_, let r, _):
+            return r
+        case .codeBlock(_, let r, _, _):
+            return r
+        case .list(_, _, let r):
+            return r
+        }
+    }
+
+    /// Returns the same block with every contained range shifted by `delta`.
+    /// Used to compare pre-edit blocks against post-edit blocks: an edit above
+    /// a block moves it without changing it, and its attributes move with the
+    /// text for free.
+    func offset(by delta: Int) -> Block {
+        func sh(_ r: NSRange) -> NSRange { NSRange(location: r.location + delta, length: r.length) }
+        switch self {
+        case .paragraph(let r):
+            return .paragraph(range: sh(r))
+        case .heading(let level, let r, let m):
+            return .heading(level: level, range: sh(r), markerRange: sh(m))
+        case .codeBlock(let lang, let r, let c, let fences):
+            return .codeBlock(language: lang, range: sh(r), contentRange: sh(c), fenceRanges: fences.map(sh))
+        case .blockQuote(let r):
+            return .blockQuote(range: sh(r))
+        case .list(let ordered, let items, let r):
+            let shifted = items.map {
+                ListItem(range: sh($0.range), markerRange: sh($0.markerRange), taskState: $0.taskState)
+            }
+            return .list(ordered: ordered, items: shifted, range: sh(r))
+        case .thematicBreak(let r):
+            return .thematicBreak(range: sh(r))
+        case .table(let r):
+            return .table(range: sh(r))
+        case .html(let r):
+            return .html(range: sh(r))
+        }
+    }
 }
 
 nonisolated enum TaskState: Sendable, Equatable {
@@ -28,13 +73,36 @@ nonisolated enum TaskState: Sendable, Equatable {
     case checked
 }
 
-nonisolated enum InlineSpan: Sendable {
+nonisolated enum InlineSpan: Sendable, Equatable {
     case bold(range: NSRange, markerRanges: [NSRange])
     case italic(range: NSRange, markerRanges: [NSRange])
     case strike(range: NSRange, markerRanges: [NSRange])
     case inlineCode(range: NSRange, markerRanges: [NSRange])
     case link(range: NSRange, urlRange: NSRange, markerRanges: [NSRange], url: URL?)
     case image(range: NSRange, urlRange: NSRange, url: URL?, alt: String)
+}
+
+nonisolated extension InlineSpan {
+    /// Returns the same span with every contained range shifted by `delta`.
+    /// Spans are cached in block-relative coordinates and shifted to source
+    /// coordinates at apply time.
+    func offset(by delta: Int) -> InlineSpan {
+        func sh(_ r: NSRange) -> NSRange { NSRange(location: r.location + delta, length: r.length) }
+        switch self {
+        case .bold(let r, let m):
+            return .bold(range: sh(r), markerRanges: m.map(sh))
+        case .italic(let r, let m):
+            return .italic(range: sh(r), markerRanges: m.map(sh))
+        case .strike(let r, let m):
+            return .strike(range: sh(r), markerRanges: m.map(sh))
+        case .inlineCode(let r, let m):
+            return .inlineCode(range: sh(r), markerRanges: m.map(sh))
+        case .link(let r, let u, let m, let url):
+            return .link(range: sh(r), urlRange: sh(u), markerRanges: m.map(sh), url: url)
+        case .image(let r, let u, let url, let alt):
+            return .image(range: sh(r), urlRange: sh(u), url: url, alt: alt)
+        }
+    }
 }
 
 nonisolated final class MarkdownParser: Sendable {
@@ -135,8 +203,8 @@ nonisolated final class MarkdownParser: Sendable {
         let startByte = offsets.byteOffset(line: startLine, column: startCol)
         // end_column is inclusive (1-based last byte), so +1 for half-open length.
         let endByte = offsets.byteOffset(line: endLine, column: endCol) + 1
-        let startUTF16 = utf16Offset(byteOffset: startByte, in: source)
-        let endUTF16 = utf16Offset(byteOffset: endByte, in: source)
+        let startUTF16 = offsets.utf16Offset(forByte: startByte)
+        let endUTF16 = offsets.utf16Offset(forByte: endByte)
         return NSRange(location: startUTF16, length: Swift.max(0, endUTF16 - startUTF16))
     }
 
@@ -200,8 +268,8 @@ nonisolated final class MarkdownParser: Sendable {
                     if childStartLine == itemStartLine && childStartCol > itemStartCol {
                         let markerStartByte = offsets.byteOffset(line: itemStartLine, column: itemStartCol)
                         let markerEndByte = offsets.byteOffset(line: childStartLine, column: childStartCol)
-                        let markerStartUTF16 = utf16Offset(byteOffset: markerStartByte, in: source)
-                        let markerEndUTF16 = utf16Offset(byteOffset: markerEndByte, in: source)
+                        let markerStartUTF16 = offsets.utf16Offset(forByte: markerStartByte)
+                        let markerEndUTF16 = offsets.utf16Offset(forByte: markerEndByte)
                         markerRange = NSRange(
                             location: markerStartUTF16,
                             length: Swift.max(0, markerEndUTF16 - markerStartUTF16)
@@ -300,6 +368,15 @@ nonisolated final class MarkdownParser: Sendable {
         }
         let substring = nsSource.substring(with: blockRange)
         guard !substring.isEmpty else { return [] }
+        return inlineSpans(forBlockContent: substring).map { $0.offset(by: blockRange.location) }
+    }
+
+    /// Extracts inline spans from a block's raw content. Ranges are relative to
+    /// the start of `substring`, which makes results cacheable by content: the
+    /// same block text always yields the same spans wherever it sits in the
+    /// document.
+    func inlineSpans(forBlockContent substring: String) -> [InlineSpan] {
+        guard !substring.isEmpty else { return [] }
 
         let options = CMARK_OPT_DEFAULT
         guard let parser = cmark_parser_new(options) else { return [] }
@@ -334,7 +411,7 @@ nonisolated final class MarkdownParser: Sendable {
                     parent: blockNode,
                     substring: substring,
                     subOffsets: subOffsets,
-                    shift: blockRange.location,
+                    shift: 0,
                     into: &spans
                 )
             }
@@ -346,7 +423,7 @@ nonisolated final class MarkdownParser: Sendable {
 
     /// Returns the range within `source` whose content should be re-parsed for inline spans,
     /// or nil if the block has no inline content.
-    private func inlineRange(of block: Block) -> NSRange? {
+    func inlineRange(of block: Block) -> NSRange? {
         switch block {
         case .paragraph(let range):
             return range
@@ -614,8 +691,8 @@ nonisolated final class MarkdownParser: Sendable {
         let endByte = lineIdx + 1 < table.lineStarts.count
             ? table.lineStarts[lineIdx + 1] - 1   // exclude the \n
             : table.totalBytes
-        let startUTF16 = utf16Offset(byteOffset: startByte, in: source)
-        let endUTF16 = utf16Offset(byteOffset: endByte, in: source)
+        let startUTF16 = table.utf16Offset(forByte: startByte)
+        let endUTF16 = table.utf16Offset(forByte: endByte)
         return NSRange(location: startUTF16, length: Swift.max(0, endUTF16 - startUTF16))
     }
 }
@@ -624,14 +701,36 @@ nonisolated private struct ByteOffsetTable {
     let lineStarts: [Int]   // index = line-1; UTF-8 byte offset of line start
     let totalBytes: Int
 
+    private let source: String
+    private let lineStartsUTF16: [Int]
+    private let lineStartIndexes: [String.UnicodeScalarView.Index]
+    private let totalUTF16: Int
+
     init(source: String) {
-        let bytes = Array(source.utf8)
-        var starts = [0]
-        for (i, b) in bytes.enumerated() where b == 0x0A {
-            starts.append(i + 1)
+        self.source = source
+        let scalars = source.unicodeScalars
+        var startsByte = [0]
+        var startsUTF16 = [0]
+        var startIndexes = [scalars.startIndex]
+        var byte = 0
+        var u16 = 0
+        var i = scalars.startIndex
+        while i < scalars.endIndex {
+            let s = scalars[i]
+            byte += Int(UTF8.width(s))
+            u16 += s.value > 0xFFFF ? 2 : 1
+            i = scalars.index(after: i)
+            if s == "\n" {
+                startsByte.append(byte)
+                startsUTF16.append(u16)
+                startIndexes.append(i)
+            }
         }
-        self.lineStarts = starts
-        self.totalBytes = bytes.count
+        self.lineStarts = startsByte
+        self.lineStartsUTF16 = startsUTF16
+        self.lineStartIndexes = startIndexes
+        self.totalBytes = byte
+        self.totalUTF16 = u16
     }
 
     func byteOffset(line: Int32, column: Int32) -> Int {
@@ -639,13 +738,31 @@ nonisolated private struct ByteOffsetTable {
         guard lineIdx >= 0 && lineIdx < lineStarts.count else { return totalBytes }
         return lineStarts[lineIdx] + Int(column) - 1
     }
-}
 
-/// UTF-8 byte offset -> UTF-16 offset.
-nonisolated private func utf16Offset(byteOffset: Int, in source: String) -> Int {
-    let utf8 = source.utf8
-    let clamped = Swift.max(0, Swift.min(byteOffset, utf8.count))
-    let utf8Idx = utf8.index(utf8.startIndex, offsetBy: clamped)
-    guard let strIdx = String.Index(utf8Idx, within: source) else { return source.utf16.count }
-    return source.utf16.distance(from: source.utf16.startIndex, to: strIdx)
+    /// UTF-8 byte offset → UTF-16 offset. O(1) for ASCII documents, otherwise
+    /// binary-searches the line table and walks scalars only within one line —
+    /// the previous implementation walked from the start of the document for
+    /// every range conversion, which made full-document passes quadratic.
+    func utf16Offset(forByte byteOffset: Int) -> Int {
+        let clamped = Swift.max(0, Swift.min(byteOffset, totalBytes))
+        if totalBytes == totalUTF16 { return clamped }  // pure-ASCII fast path
+
+        var lo = 0
+        var hi = lineStarts.count - 1
+        while lo < hi {
+            let mid = (lo + hi + 1) / 2
+            if lineStarts[mid] <= clamped { lo = mid } else { hi = mid - 1 }
+        }
+        var byte = lineStarts[lo]
+        var u16 = lineStartsUTF16[lo]
+        var i = lineStartIndexes[lo]
+        let scalars = source.unicodeScalars
+        while byte < clamped, i < scalars.endIndex {
+            let s = scalars[i]
+            byte += Int(UTF8.width(s))
+            u16 += s.value > 0xFFFF ? 2 : 1
+            i = scalars.index(after: i)
+        }
+        return u16
+    }
 }

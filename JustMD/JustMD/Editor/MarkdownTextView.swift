@@ -26,26 +26,40 @@ final class MarkdownTextView: NSTextView {
 
     // MARK: - Typing attributes
 
-    // NSTextView normally inherits typing attributes from the character at the
-    // caret's left neighbor — for us that means new chars pick up whatever the
-    // last highlight pass put there (heading-bold-22pt, code-mono, dimmed marker
-    // color, etc.) until the next highlight pass overwrites them ~200ms later.
-    // Visible symptom: typing at the end of a heading produces giant bold chars
-    // that pop back to normal a moment later.
-    //
-    // Force typing to start from the base font/color in the current highlight
-    // context. The highlighter still re-applies per-block attributes after the
-    // edit, so headings remain bold once they're recognized.
+    // NSTextView inherits typing attributes from the caret's left neighbor.
+    // Inheriting the *font* is what we want (typing inside a heading should
+    // not jiggle between base and heading size), but a few attributes must not
+    // leak into newly typed text: the dimmed marker color (typing right after
+    // `**` would come out gray), the inline-code background past its closing
+    // backtick, and our bookkeeping attributes. The next-tick highlight pass
+    // re-derives everything from the parse, so any residual mismatch lasts a
+    // single frame.
     override var typingAttributes: [NSAttributedString.Key: Any] {
         get {
-            if let storage = textStorage as? MarkdownTextStorage,
-               let context = storage.highlightContext {
-                return [
-                    .font: context.baseFont,
-                    .foregroundColor: context.textColor
-                ]
+            var attrs = super.typingAttributes
+            guard let storage = textStorage as? MarkdownTextStorage,
+                  let context = storage.highlightContext else { return attrs }
+            attrs.removeValue(forKey: MarkdownAttribute.marker)
+            attrs.removeValue(forKey: MarkdownAttribute.headingHash)
+            attrs.removeValue(forKey: MarkdownAttribute.codeLanguage)
+            attrs.removeValue(forKey: .link)
+            if let color = attrs[.foregroundColor] as? NSColor, color == context.secondaryColor {
+                attrs[.foregroundColor] = context.textColor
             }
-            return super.typingAttributes
+            // Keep code background only while the caret is strictly inside a
+            // code run (the character at the caret carries it too).
+            if attrs[.backgroundColor] != nil {
+                let caret = selectedRange().location
+                let insideCode = caret < storage.length
+                    && storage.attribute(.backgroundColor, at: caret, effectiveRange: nil) != nil
+                if !insideCode {
+                    attrs.removeValue(forKey: .backgroundColor)
+                    attrs[.font] = context.baseFont
+                }
+            }
+            if attrs[.font] == nil { attrs[.font] = context.baseFont }
+            if attrs[.foregroundColor] == nil { attrs[.foregroundColor] = context.textColor }
+            return attrs
         }
         set {
             super.typingAttributes = newValue
