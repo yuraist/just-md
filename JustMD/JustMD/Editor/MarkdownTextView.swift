@@ -3,6 +3,8 @@ import AppKit
 @MainActor
 final class MarkdownTextView: NSTextView {
 
+    private(set) var markerVisibility: MarkerVisibilityController?
+
     convenience init(storage: MarkdownTextStorage) {
         let layoutManager = NSLayoutManager()
         storage.addLayoutManager(layoutManager)
@@ -11,6 +13,16 @@ final class MarkdownTextView: NSTextView {
         container.heightTracksTextView = false
         layoutManager.addTextContainer(container)
         self.init(frame: .zero, textContainer: container)
+
+        // Bear-style marker hiding. Glyph generation must stay on the main
+        // thread for the delegate, so background layout is disabled — fine for
+        // an editor that restyles incrementally anyway.
+        let visibility = MarkerVisibilityController()
+        visibility.layoutManager = layoutManager
+        layoutManager.delegate = visibility
+        layoutManager.backgroundLayoutEnabled = false
+        self.markerVisibility = visibility
+
         self.isRichText = false
         self.usesFindBar = false
         self.allowsUndo = true
@@ -63,6 +75,19 @@ final class MarkdownTextView: NSTextView {
         }
         set {
             super.typingAttributes = newValue
+        }
+    }
+
+    // MARK: - Selection → marker visibility
+
+    override func setSelectedRanges(
+        _ ranges: [NSValue],
+        affinity: NSSelectionAffinity,
+        stillSelecting: Bool
+    ) {
+        super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
+        if let storage = textStorage, let first = ranges.first?.rangeValue {
+            markerVisibility?.updateActiveRange(for: first, in: storage)
         }
     }
 

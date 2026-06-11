@@ -102,6 +102,18 @@ nonisolated final class MarkdownTextStorage: NSTextStorage {
             delta: delta
         )
         isHighlighting = false
+
+        // Marker attributes may have appeared/disappeared in the restyled
+        // window; glyph hiding is decided at glyph generation, so regenerate
+        // glyphs there. (Character edits regenerate glyphs before the
+        // highlight pass has tagged the new markers.)
+        if let window = highlighter.lastAppliedWindow, window.length > 0,
+           NSMaxRange(window) <= length {
+            for lm in layoutManagers {
+                lm.invalidateGlyphs(forCharacterRange: window, changeInLength: 0, actualCharacterRange: nil)
+                lm.invalidateLayout(forCharacterRange: window, actualCharacterRange: nil)
+            }
+        }
     }
 
     /// Apply highlighting synchronously over the whole document. Used on

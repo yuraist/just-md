@@ -345,8 +345,10 @@ nonisolated final class SyntaxHighlighter {
             }
 
         case .image(let range, _, _, _):
+            // Dim the raw image syntax but never hide it — until inline image
+            // rendering exists, hiding would make the image vanish entirely.
             guard let r = safe(range) else { return }
-            storage.addAttribute(MarkdownAttribute.marker, value: true, range: r)
+            storage.addAttribute(.foregroundColor, value: context.secondaryColor, range: r)
         }
     }
 }
