@@ -194,7 +194,7 @@ struct MarkerHidingLayoutTests {
 
         ## Second heading
 
-        - First bullet
+        - First bullet with **bold** and a [link](https://e.co)
         - Second bullet with a much longer text that should wrap onto the \
         following line and hang under the text column, not under the bullet
         - [ ] Open task
