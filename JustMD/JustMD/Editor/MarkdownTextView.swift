@@ -39,19 +39,31 @@ final class MarkdownTextView: NSTextView {
 
     // MARK: - Typing attributes
 
-    // NSTextView inherits typing attributes from the caret's left neighbor.
-    // Inheriting the *font* is what we want (typing inside a heading should
-    // not jiggle between base and heading size), but a few attributes must not
-    // leak into newly typed text: the dimmed marker color (typing right after
-    // `**` would come out gray), the inline-code background past its closing
-    // backtick, and our bookkeeping attributes. The next-tick highlight pass
-    // re-derives everything from the parse, so any residual mismatch lasts a
-    // single frame.
+    // NSTextView snapshots typing attributes from the caret's left neighbor at
+    // selection-change time. With our restyle pass running asynchronously (one
+    // runloop pass after the edit), that snapshot is routinely STALE — it was
+    // taken before the neighbor got its heading/bold/code styling, so every
+    // character typed in a heading would start out base-sized and only pop to
+    // the right size on the next pass. Re-read the neighbor's live attributes
+    // at insertion time instead, then strip what must not leak into new text:
+    // bookkeeping attributes, the dimmed marker color, links, and span-edge
+    // styles (code background, strikethrough) once the caret has left the span.
     override var typingAttributes: [NSAttributedString.Key: Any] {
         get {
             var attrs = super.typingAttributes
             guard let storage = textStorage as? MarkdownTextStorage,
                   let context = storage.highlightContext else { return attrs }
+
+            let caret = selectedRange().location
+            if caret > 0, caret <= storage.length {
+                let live = storage.attributes(at: caret - 1, effectiveRange: nil)
+                attrs[.font] = live[.font]
+                attrs[.foregroundColor] = live[.foregroundColor]
+                attrs[.backgroundColor] = live[.backgroundColor]
+                attrs[.strikethroughStyle] = live[.strikethroughStyle]
+                attrs[.paragraphStyle] = live[.paragraphStyle]
+            }
+
             attrs.removeValue(forKey: MarkdownAttribute.marker)
             attrs.removeValue(forKey: MarkdownAttribute.headingHash)
             attrs.removeValue(forKey: MarkdownAttribute.codeLanguage)
@@ -59,15 +71,22 @@ final class MarkdownTextView: NSTextView {
             if let color = attrs[.foregroundColor] as? NSColor, color == context.secondaryColor {
                 attrs[.foregroundColor] = context.textColor
             }
-            // Keep code background only while the caret is strictly inside a
-            // code run (the character at the caret carries it too).
+            // Span-edge rule: keep the code background / strikethrough only
+            // while the caret is strictly inside the span (the character at
+            // the caret carries the attribute too).
             if attrs[.backgroundColor] != nil {
-                let caret = selectedRange().location
                 let insideCode = caret < storage.length
                     && storage.attribute(.backgroundColor, at: caret, effectiveRange: nil) != nil
                 if !insideCode {
                     attrs.removeValue(forKey: .backgroundColor)
                     attrs[.font] = context.baseFont
+                }
+            }
+            if attrs[.strikethroughStyle] != nil {
+                let insideStrike = caret < storage.length
+                    && storage.attribute(.strikethroughStyle, at: caret, effectiveRange: nil) != nil
+                if !insideStrike {
+                    attrs.removeValue(forKey: .strikethroughStyle)
                 }
             }
             if attrs[.font] == nil { attrs[.font] = context.baseFont }

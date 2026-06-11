@@ -82,6 +82,10 @@ nonisolated final class MarkdownTextStorage: NSTextStorage {
             self.highlightScheduled = false
             self.runHighlight()
         }
+        // CFRunLoopPerformBlock enqueues without waking the runloop — after a
+        // keystroke the loop goes back to sleep and the block would only run
+        // on the NEXT event, leaving the just-typed text unstyled until then.
+        CFRunLoopWakeUp(CFRunLoopGetMain())
     }
 
     private func runHighlight() {

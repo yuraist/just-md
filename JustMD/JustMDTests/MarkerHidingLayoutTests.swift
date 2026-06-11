@@ -73,6 +73,40 @@ struct MarkerHidingLayoutTests {
         #expect(lm.propertyForGlyph(at: lm.glyphIndexForCharacter(at: boldChar)) != .null)
     }
 
+    @Test("typing attributes follow the live neighbor, not the stale snapshot")
+    func typingAttributesLiveInheritance() throws {
+        // Reproduces the "just-typed character is small in a heading" bug:
+        // NSTextView snapshots typing attributes at selection-change time,
+        // which is BEFORE the async restyle pass has styled the neighbor.
+        let storage = MarkdownTextStorage()
+        let highlighter = SyntaxHighlighter(parser: MarkdownParser())
+        storage.highlighter = highlighter
+        storage.highlightContext = HighlightContext(
+            baseFont: NSFont.systemFont(ofSize: 16),
+            textColor: .labelColor,
+            secondaryColor: .secondaryLabelColor,
+            accentColor: .controlAccentColor,
+            codeFont: NSFont.monospacedSystemFont(ofSize: 14, weight: .regular),
+            codeBackground: NSColor(white: 0.95, alpha: 1)
+        )
+        storage.replaceCharacters(in: NSRange(location: 0, length: 0), with: "## Head")
+        let view = MarkdownTextView(storage: storage)
+        view.frame = NSRect(x: 0, y: 0, width: 800, height: 200)
+
+        // Caret placed while the text is still unstyled — the snapshot NSTextView
+        // takes here carries the base font.
+        view.setSelectedRange(NSRange(location: 7, length: 0))
+        // The restyle lands afterwards (in the app: one runloop pass later).
+        storage.applyHighlightingNow()
+
+        let typingFont = try #require(view.typingAttributes[.font] as? NSFont)
+        #expect(typingFont.pointSize > 16)
+
+        view.insertText("y", replacementRange: NSRange(location: 7, length: 0))
+        let insertedFont = try #require(storage.attributes(at: 7, effectiveRange: nil)[.font] as? NSFont)
+        #expect(insertedFont.pointSize > 16)
+    }
+
     @Test("offscreen render produces a non-empty bitmap (visual artifact)")
     func renderArtifact() throws {
         let demo = """
