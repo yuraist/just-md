@@ -1,8 +1,8 @@
 # JustMD
 
-A native macOS markdown editor. Open a `.md` file, see it rendered with dimmed syntax markers, write more text. No file browser, no cloud, no sync, no tabs, no sidebars — inspired by Bear, iA Writer, and Medium. *Hello bold*. 
+A native macOS markdown editor. Open a `.md` file and the syntax disappears: markers hide on every line except the one you're editing (Bear-style), links show their text only, lists get real bullets, rules become hairlines. Flip to **Read mode** (⇧⌘E) for a fully rendered view with real table grids, checkboxes, and inline images. No file browser, no cloud, no sync, no tabs, no sidebars — inspired by Bear, iA Writer, and Medium.
 
-> **Status:** MVP (v0.1.0). See [`docs/product.md`](docs/product.md) for what it does; [`docs/known-issues.md`](docs/known-issues.md) for what's deferred to v0.2.
+> **Status:** v0.2 — post-rework. See [`docs/product.md`](docs/product.md) for what it does; [`docs/known-issues.md`](docs/known-issues.md) for what's still open.
 
 ## Requirements
 
@@ -29,15 +29,16 @@ AppKit document-based app (`NSDocument` per file) with SwiftUI for the Welcome a
 
 | Module | Role |
 |---|---|
-| `App/` | `@main` AppDelegate; menu wiring (Format, View → Theme, Show Welcome). |
-| `Document/` | `MarkdownDocument: NSDocument`, window controller, view controller. Autosave + versions via `NSDocument`. |
-| `Editor/` | `NSTextStorage` subclass with debounced syntax highlighter. `swift-cmark` for GFM parsing, `Highlightr` for fenced-code tokens. |
+| `App/` | `@main` AppDelegate; menu wiring (Format, View → Reading Mode + Theme, Show Welcome). |
+| `Document/` | `MarkdownDocument: NSDocument`, window controller (Read/Edit toolbar), view controller. Autosave + versions via `NSDocument`. |
+| `Editor/` | `NSTextStorage` subclass with incremental highlighting (`BlockDiff` restyles only the edited window). `MarkerVisibilityController` hides syntax glyphs off the active paragraph. `MarkdownLayoutManager` draws HR rules and quote bars. `swift-cmark` for GFM parsing, `Highlightr` (cached, async) for fenced-code tokens. |
+| `Reader/` | `MarkdownReadRenderer` — AST → display attributed string: real `NSTextTable` grids, checkboxes, inline images. |
 | `Theme/` | `Theme` / `Palette` Codable models; builtin + user presets; `.justmd-theme` JSON export/import. |
 | `Welcome/` | SwiftUI Welcome window: New / Open / Drop / Recent. |
 | `Preferences/` | SwiftUI Preferences + Manage Themes (colorpickers). Persistence via `UserDefaults`. |
 
 Full design: [`docs/plans/2026-04-18-just-md-design.md`](docs/plans/2026-04-18-just-md-design.md).
-Implementation plan: [`docs/plans/2026-04-18-just-md-implementation.md`](docs/plans/2026-04-18-just-md-implementation.md).
+Implementation plans: [`docs/plans/2026-04-18-just-md-implementation.md`](docs/plans/2026-04-18-just-md-implementation.md), [`docs/plans/2026-06-11-editor-rework.md`](docs/plans/2026-06-11-editor-rework.md).
 
 ## Dependencies (SPM)
 
@@ -46,7 +47,7 @@ Implementation plan: [`docs/plans/2026-04-18-just-md-implementation.md`](docs/pl
 
 ## Tests
 
-72 tests across 14 suites as of v0.1.0. Swift Testing (`@Test`, `@Suite`, `#expect`).
+112 tests as of the 2026-06 editor rework. Swift Testing (`@Test`, `@Suite`, `#expect`).
 
 Run: `xcodebuild ... -only-testing:JustMDTests test`.
 

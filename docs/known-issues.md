@@ -1,109 +1,53 @@
-# Known Issues — to revisit after MVP
+# Known Issues
 
-Tracking debt accumulated while shipping MVP. Each phase introduced something we'll need to come back to.
+Updated 2026-06-11 after the editor rework (see `docs/plans/2026-06-11-editor-rework.md`).
 
-## Phase 6 — Editor rendering
+## Resolved in the rework
 
-### Issue 6-A: Hybrid inline hide not working (UI)
+- **6-A Hybrid inline hide** — markers now fully hide off the active paragraph via
+  `NSLayoutManagerDelegate.shouldGenerateGlyphs` + `.null` glyph properties
+  (`MarkerVisibilityController`). Caret reveals them dimmed. No garbled glyphs —
+  guarded by `MarkerHidingLayoutTests`.
+- **6-B Typing latency** — incremental restyling (`BlockDiff` window), per-block
+  inline-span cache, O(line) byte→UTF-16 mapping, cached/async Highlightr, and
+  next-runloop-pass scheduling replaced the 200 ms debounce + full-document pass.
+  Guarded by `HighlightPipelineTests.largeDocIncremental`.
+- **6-C Visual completeness** — lists (accent bullets + hanging indent), task
+  lists (tinted), HR (drawn rule), blockquote (accent bar, hidden `>`), tables
+  (dimmed pipes in editor; real `NSTextTable` grid in Read mode).
+- **Cmd+B/Cmd+I** — the template Format menu in MainMenu.xib was swallowing the
+  shortcuts into `NSFontManager.addFontTrait:`; removed. Formatter edits now go
+  through the undo stack and trim whitespace/newlines from selections.
+- **App Store blockers** — app icon generated and installed; sandbox + hardened
+  runtime + category + copyright + encryption-exemption all set.
 
-**Status:** Workaround in place. Markers are visible-but-dim instead of fully hidden on inactive lines.
+## Open
 
-**What's wrong:** The original `HiddenMarkerLayoutManager` overrode `setGlyphs` and inserted `.null` GlyphProperty bits. This caused garbled Unicode chars on the just-typed character and on initial file open (until window resize). Replaced with attribute-based dimming (`secondaryColor` on all markers).
+### Inline images in the editor
 
-**What we want (per design doc):**
-- Markers fully hidden on inactive lines (not just dim).
-- Heading hashes always hidden.
-- Bear-style — caret on a line reveals the markers dimmed.
+`![alt](path)` shows as dimmed raw markdown in Edit mode. Read mode renders
+local images inline (`NSTextAttachment`) when the path is readable; remote
+URLs and paths outside the sandbox grant fall back to dimmed alt text.
 
-**Approaches to try:**
-1. **Zero-width `NSTextAttachment`** — for marker chars off active line, attach a custom attachment with `attachmentBounds` returning `.zero`. The underlying chars stay in `storage.string` (so file save round-trips perfectly), but rendering shows nothing. Toggle attachment on/off as caret moves.
-2. **TextKit 2 (`NSTextLayoutFragment`)** — modern replacement for `NSLayoutManager`. Far more flexible for character substitution. Bigger refactor.
-3. **`.font` size 0 + `.kern` adjustment** — fragile but simpler than attachments.
+**Next step:** async download/cache for remote images in Read mode; editor-mode
+inline rendering still needs a character-substitution mechanism (TextKit 2
+custom fragment or display-string mapping).
 
-**Why deferred:** Layout-manager approach was crashing the rendering. Attachments need careful undo/typing-attribute handling. Both > 1 day of focused work.
+### Slow window resize on large documents
 
-### Issue 6-B: Typing isn't real-time (Performance)
+TextKit 1 reflows the whole attributed text on container-width changes. Not
+affected by the highlighting rework (no re-parse on resize), but still visible
+on ~100KB+ files.
 
-**Status:** Improved with 200ms debounce. Still feels laggy on large files.
+**Approaches:** TextKit 2 migration; defer reflow during live resize.
 
-**What's wrong:**
-- Every edit triggers a full `cmark` re-parse of the entire document.
-- For each block, inline-span extraction does a SECOND cmark parse (substring re-parse via `inlineSpans(in:source:)`).
-- For each fenced code block, Highlightr runs a JSContext call (~5-50ms).
-- Newly typed characters show in default font weight until 200ms after last keystroke (debounce delay).
+### Table editing ergonomics
 
-**Visible symptom:** typing in a large file (~30KB) shows the just-typed characters in a different visual weight than the rest until the highlighter catches up.
+Editor mode shows raw pipes (dimmed, mono). No auto-formatting of column
+widths, no Tab-to-next-cell. Read mode renders the true grid.
 
-**Approaches to try:**
-1. **Incremental block re-parse (Task 4.5 from plan).** Compute the affected block range from `editedRange`, re-parse only that block, apply attributes only to that range. cmark gives us the AST cheaply per block.
-2. **Cache `inlineSpans` per block.** Hash the block's substring; only re-parse on hash mismatch.
-3. **Async Highlightr.** Run code-block highlighting on a background queue, apply results back on main when ready. Code blocks won't have colored tokens for ~50ms after typing inside them — acceptable.
-4. **Set typing attributes after each highlight pass** so new chars at the caret inherit the right style without waiting for the next debounce tick.
-5. **Reduce debounce to ~50ms for short edits, keep 200ms for paste/large changes.**
+### IME / marked-text styling
 
-**Why deferred:** Each requires careful state tracking. Incremental re-parse is the biggest win and would warrant a dedicated subagent task.
-
-### Issue 6-C: Several markdown elements not rendered visually (Functionality)
-
-**Status:** Parsed but not styled.
-
-**Currently rendered well:**
-- Headings (bold, larger sizes by level).
-- Bold (after font-trait fix).
-- Italic.
-- Strikethrough.
-- Inline code (mono + light bg).
-- Fenced code blocks (mono + bg + Highlightr token colors).
-- Links (color + clickable).
-- Blockquote (indent + dimmer color).
-
-**Currently NOT visually distinct:**
-- **Lists** — bullet/number markers visible (dim) but no hanging indent applied. List items wrap under the bullet column instead of under the text column.
-- **Task lists** (`- [ ]` / `- [x]`) — same as lists. Checkbox not rendered as a glyph.
-- **Tables** — pipes and `---` separators visible as plain text. No grid rendering.
-- **HR (`---`)** — shown as three dashes (dim). No separator-line rendering.
-- **Images** — `![alt](path)` shown as raw markdown text with marker dimming. Should be replaced by inline `NSTextAttachment` (Task 10.4).
-
-**Approaches to try:**
-1. **List hanging indent** — for `.list` blocks, build an `NSParagraphStyle` with `headIndent` matching marker width.
-2. **Task checkbox** — for items with `taskState`, replace marker range with a Unicode `☐ / ☑` char or a custom attachment.
-3. **HR separator line** — paragraph style with a top border, OR a custom `NSTextAttachment` that draws a horizontal line.
-4. **Tables** — significant work. Custom `NSTextAttachment` for the whole table OR a separate inline view via `NSAccessory`. Defer to post-MVP.
-5. **Inline images** — Task 10.4 in the plan; not yet implemented.
-
-**Why deferred:** Each is a polish item. Plan tasks 10.x cover several of these explicitly.
-
----
-
-## Phase 10 — Polish
-
-### Issue 10-A: Inline images not rendered (Phase 10)
-
-`![alt](path.png)` syntax is parsed (parser emits `.image` span) but not rendered as inline images in the editor. Markdown text shows as raw with marker dimming.
-
-**Why deferred:** Proper inline image rendering requires character substitution — replacing the markdown span with a single NSTextAttachment containing the image. Doing this without mutating the source string requires either a custom layout fragment (TextKit 2) or a delegate-based approach. Both are non-trivial and weren't blockers for MVP.
-
-**Approach to try:** Convert image markdown range into a contiguous "attachment region" via custom layout manager — replace the entire range with a single attachment glyph at render time, restore source on save.
-
-### Issue 10-B: Slow window resize on large documents
-
-**Status:** Open. Acceptable for MVP.
-
-Resizing the document window on a large file (~30KB+) is sluggish — the cursor lags as the system re-flows attributed text into the new container width. The highlighter is NOT re-running on resize (only NSTextView's layout manager is recomputing line breaks), so this is a TextKit-1 layout cost, not a parser cost.
-
-**Approaches to try:**
-1. Move to TextKit 2 — `NSTextLayoutManager` is significantly faster for re-flow.
-2. Set `textContainer.widthTracksTextView = true` already done; could also disable `usesFontLeading` or pre-cache line fragments.
-3. Defer attribute application during active resize via `NSWindow.willStartLiveResize` / `didEndLiveResize`, snapshotting the visible rect and re-layout only when the user releases.
-
----
-
-## How we'll address these
-
-After we finish a complete pass through the MVP scope (Phases 7-10), we'll create a **"v0.2 polish"** plan that prioritizes these issues:
-
-1. **Issue 6-B** (performance) — highest user impact. Tackle via incremental re-parse.
-2. **Issue 6-A** (true hide) — second highest, the "magic" UX. Try zero-width attachments first.
-3. **Issue 6-C** (visual completeness) — bite-sized. Address element-by-element.
-
-Each issue will get its own design + plan once we hit it.
+The per-keystroke restyle pass touches the edited paragraph while composition
+(Japanese/Korean input) is active. Not observed to break composition, but
+marked-text edge cases are untested.

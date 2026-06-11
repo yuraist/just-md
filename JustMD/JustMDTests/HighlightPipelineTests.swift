@@ -158,6 +158,37 @@ struct HighlightPipelineTests {
         #expect(highlighter.inlineParseMisses == missesAfterFirst)
     }
 
+    @Test("incremental pass on a large document touches one block and stays fast")
+    func largeDocIncremental() {
+        var doc = ""
+        for i in 0..<400 {
+            doc += "## Section \(i)\n\nParagraph \(i) with **bold**, *italic*, `code`, and a [link](https://e.co/\(i)).\n\n"
+        }
+        let storage = MarkdownTextStorage()
+        let highlighter = SyntaxHighlighter(parser: MarkdownParser())
+        let context = makeContext()
+        storage.replaceCharacters(in: NSRange(location: 0, length: 0), with: doc)
+        let blocks = highlighter.apply(to: storage, context: context)
+
+        let editLocation = (doc as NSString).length / 2
+        storage.replaceCharacters(in: NSRange(location: editLocation, length: 0), with: "x")
+        let start = ContinuousClock.now
+        _ = highlighter.apply(
+            to: storage,
+            context: context,
+            previousBlocks: blocks,
+            editedRange: NSRange(location: editLocation, length: 1),
+            delta: 1
+        )
+        let elapsed = ContinuousClock.now - start
+
+        // The pass must restyle only the edited paragraph's window, not the
+        // ~30KB document; the bound is generous to absorb CI noise but rules
+        // out a regression to full-document restyling.
+        #expect((highlighter.lastAppliedWindow?.length ?? Int.max) < 300)
+        #expect(elapsed < .milliseconds(100))
+    }
+
     @Test("structure change re-applies through the document end")
     func structureChange() {
         let (storage, highlighter) = makeStorage("``\npara")

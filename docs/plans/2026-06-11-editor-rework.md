@@ -1,5 +1,7 @@
 # Editor Rework Implementation Plan
 
+> **Status: COMPLETE (2026-06-11).** All tasks landed; 113 tests green; Release build verified. Remaining follow-ups tracked in `docs/known-issues.md`.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Make typing instant, fix Cmd+B/Cmd+I, hide markdown syntax Bear-style, render links/tables/HR/lists properly, add a Read mode, and remove App Store blockers (sandbox, icon).

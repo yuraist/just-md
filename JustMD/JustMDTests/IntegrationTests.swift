@@ -12,6 +12,36 @@ import AppKit
 import Foundation
 @testable import JustMD
 
+@Suite("Read mode integration")
+@MainActor
+struct ReadModeIntegrationTests {
+    @Test("toggling read mode swaps the document view and renders content")
+    func toggleSwapsViews() {
+        let document = MarkdownDocument()
+        document.text = "# Title\n\n| A | B |\n|---|---|\n| 1 | 2 |\n"
+        let vc = DocumentViewController(document: document)
+        _ = vc.view  // force loadView
+
+        let scroll = vc.view as? NSScrollView
+        let editorView = scroll?.documentView
+        #expect(vc.isReadMode == false)
+
+        vc.toggleReadMode(nil)
+        #expect(vc.isReadMode == true)
+        let readView = scroll?.documentView as? NSTextView
+        #expect(readView !== editorView)
+        #expect(readView?.isEditable == false)
+        let rendered = readView?.textStorage?.string ?? ""
+        #expect(rendered.contains("Title"))
+        #expect(!rendered.contains("#"))
+        #expect(!rendered.contains("|"))
+
+        vc.toggleReadMode(nil)
+        #expect(vc.isReadMode == false)
+        #expect(scroll?.documentView === editorView)
+    }
+}
+
 @Suite("Theme integration")
 @MainActor
 struct ThemeIntegrationTests {
