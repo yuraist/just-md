@@ -18,7 +18,7 @@ file mirrors it. Update both when the listing changes.
 - **Promotional text** (≤170): `Open a .md file and read it like a page. The syntax shows up only on the line you're editing, then gets out of the way again.`
 - **Keywords** (≤100): `md,notes,readme,writing,writer,plain text,wysiwyg,distraction free,document,mdown,technical,focus`
 - **Support / marketing URL:** `https://justmd.nuta.life/`
-- **Privacy Policy URL:** `https://justmd.nuta.life/privacy.html`
+- **Privacy Policy URL:** `https://justmd.nuta.life/privacy`
 - **What's New:** `First release.` (ASC refuses the field before the first release; set it on 1.0.1)
 
 ## Description

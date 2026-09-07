@@ -16,8 +16,8 @@ Done by automation:
 - ✅ Screenshots: `marketing/screenshots/appstore-{1,2}-*.png` (2880×1800,
   regenerable via the `AppStoreScreenshots` test suite)
 - ✅ Listing texts ready: `docs/appstore-metadata.md`
-- ✅ Landing + privacy policy live in the public `yuraist/justmd` repo
-  (GitHub Pages)
+- ✅ Landing + privacy policy: `https://justmd.nuta.life/` (Cloudflare Worker,
+  source in the public `yuraist/justmd` repo)
 - ✅ 1.0 QA pass complete ([PRI-42](https://linear.app/nuta-life/issue/PRI-42))
 - ✅ **Xcode Cloud** (set up 2026-09-07, same shape as Prism/Nuta): product
   `JustMD`, workflow **Release** — every push to `master` runs `JustMDTests`
@@ -26,6 +26,8 @@ Done by automation:
   or `altool` upload is needed for App Store builds; pick the build in ASC.
   Manual builds: Xcode → Integrate → Xcode Cloud → Manage Workflows, or
   `POST /v1/ciBuildRuns` with the workflow id (`scripts/asc-jwt.py` for the JWT).
+  Build 2 (run #2, 2026-09-07) is attached to version 1.0; run #1 failed only
+  because its number collided with the June build 1.
 
 Blocked on owner-only steps:
 
@@ -40,10 +42,11 @@ Blocked on owner-only steps:
    Settings → Accounts → Manage Certificates → ＋ → Developer ID Application;
    then `xcodebuild -exportArchive … -exportOptionsPlist
    scripts/ExportOptionsDevID.plist` + notarytool + DMG.
-3. **GitHub Pages domain** ([PRI-45](https://linear.app/nuta-life/issue/PRI-45)) — the account-wide custom domain `app.nuta.life`
-   is dead (DNS gone), so every Pages URL redirects to it. Either renew the
-   domain or remove `CNAME` from the `yuraist.github.io` repo; the landing
-   then serves at `https://justmd.nuta.life/`.
+3. ~~**GitHub Pages domain**~~ — resolved ([PRI-45](https://linear.app/nuta-life/issue/PRI-45)): the site left GitHub Pages
+   and runs as the Cloudflare Worker `justmd-site` (repo `yuraist/justmd`,
+   `public/` + `wrangler.jsonc`, `npx wrangler@4 deploy`) on the same account
+   as nuta.life, custom domain `https://justmd.nuta.life/`; privacy policy at
+   `/privacy`.
 
 How to get JustMD 1.0 into users' hands. Two channels, not mutually exclusive —
 many indie Mac apps ship both. Current project state already satisfies the hard
