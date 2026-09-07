@@ -51,7 +51,8 @@ struct AppStoreScreenshots {
             secondaryColor: .secondaryLabelColor,
             accentColor: .controlAccentColor,
             codeFont: NSFont.monospacedSystemFont(ofSize: 14, weight: .regular),
-            codeBackground: NSColor(white: 0.95, alpha: 1)
+            codeBackground: NSColor(white: 0.95, alpha: 1),
+            lineHeightMultiple: 1.5  // the shipped default "Line height" preference
         )
     }
 

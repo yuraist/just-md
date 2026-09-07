@@ -34,6 +34,27 @@ final class MarkdownDocument: NSDocument {
         self.addWindowController(controller)
     }
 
+    // MARK: - Printing
+
+    /// File → Print… prints the rendered document (the Read-mode view, in a
+    /// print palette). This also gives "Save as PDF" from the print dialog.
+    override func printOperation(withSettings printSettings: [NSPrintInfo.AttributeKey: Any]) throws -> NSPrintOperation {
+        let info = NSPrintInfo(dictionary: printSettings)
+        info.horizontalPagination = .fit
+        info.verticalPagination = .automatic
+        info.isHorizontallyCentered = false
+        info.isVerticallyCentered = false
+        let width = info.imageablePageBounds.width
+        let viewController = windowControllers.first?.contentViewController as? DocumentViewController
+            ?? DocumentViewController(document: self)
+        _ = viewController.view
+        let printView = viewController.makePrintView(pageWidth: width)
+        let operation = NSPrintOperation(view: printView, printInfo: info)
+        operation.showsPrintPanel = true
+        operation.showsProgressPanel = true
+        return operation
+    }
+
     // NSDocument conforms to NSFilePresenter automatically. `presentedItemDidChange`
     // fires on an arbitrary queue; bounce to main before touching document state.
     nonisolated override func presentedItemDidChange() {

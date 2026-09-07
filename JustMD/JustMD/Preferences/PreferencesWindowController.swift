@@ -12,11 +12,15 @@ final class PreferencesWindowController: NSWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = "Preferences"
+        // macOS 13+ calls this window "Settings" (the app menu item is renamed
+        // by the system); match it.
+        window.title = "Settings"
         window.isReleasedWhenClosed = false
-        window.center()
         super.init(window: window)
-        window.contentView = NSHostingView(rootView: PreferencesView())
+        let hosting = NSHostingController(rootView: PreferencesView())
+        window.contentViewController = hosting
+        window.setContentSize(hosting.view.fittingSize)
+        window.center()
     }
 
     required init?(coder: NSCoder) { fatalError() }

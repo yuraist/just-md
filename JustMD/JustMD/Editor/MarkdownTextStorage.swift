@@ -116,6 +116,10 @@ nonisolated final class MarkdownTextStorage: NSTextStorage {
             for lm in layoutManagers {
                 lm.invalidateGlyphs(forCharacterRange: window, changeInLength: 0, actualCharacterRange: nil)
                 lm.invalidateLayout(forCharacterRange: window, actualCharacterRange: nil)
+                // Neither call above marks the text view dirty; without an
+                // explicit display invalidation the window can show the
+                // pre-pass frame (edited paragraph blank) until the next event.
+                lm.invalidateDisplay(forCharacterRange: window)
             }
         }
     }

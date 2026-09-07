@@ -4,6 +4,10 @@ final class MarkdownWindowController: NSWindowController, NSToolbarDelegate {
 
     private static let readToggleID = NSToolbarItem.Identifier("com.justmd.readToggle")
 
+    /// Top-left of the most recently placed document window; each new window
+    /// cascades from it instead of landing exactly on top of the last one.
+    private static var nextCascadePoint = NSPoint.zero
+
     init(document: MarkdownDocument) {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
@@ -16,6 +20,7 @@ final class MarkdownWindowController: NSWindowController, NSToolbarDelegate {
         window.isReleasedWhenClosed = false
         window.toolbarStyle = .unifiedCompact
         window.center()
+        Self.nextCascadePoint = window.cascadeTopLeft(from: Self.nextCascadePoint)
         super.init(window: window)
         self.contentViewController = DocumentViewController(document: document)
 
@@ -37,6 +42,15 @@ final class MarkdownWindowController: NSWindowController, NSToolbarDelegate {
 
     deinit {
         NotificationCenter.default.removeObserver(self)
+    }
+
+    override func showWindow(_ sender: Any?) {
+        super.showWindow(sender)
+        // A document on screen is what the Welcome window exists to produce;
+        // keep it from lingering behind the editor.
+        if let welcome = WelcomeWindowController.shared.window, welcome.isVisible {
+            welcome.orderOut(nil)
+        }
     }
 
     // MARK: - NSToolbarDelegate

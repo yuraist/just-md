@@ -37,6 +37,14 @@ struct WelcomeView: View {
         .padding(40)
         .frame(minWidth: 520, minHeight: 360)
         .onAppear { reloadRecents() }
+        // The window stays alive between showings, so `onAppear` fires once;
+        // refresh whenever it comes back to the front.
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+            reloadRecents()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            reloadRecents()
+        }
     }
 
     @ViewBuilder

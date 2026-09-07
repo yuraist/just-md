@@ -90,9 +90,36 @@ final class DocumentViewController: NSViewController {
                 self?.rebuildContext()
             }
         }
+        // Reading width is a horizontal inset that depends on the window width.
+        scroll.contentView.postsFrameChangedNotifications = true
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(contentFrameDidChange),
+            name: NSView.frameDidChangeNotification,
+            object: scroll.contentView
+        )
 
         rebuildContext()
     }
+
+    @objc private func contentFrameDidChange() {
+        applyReadingWidth()
+    }
+
+    /// Centers the text column: the "Reading width" preference caps the line
+    /// length, and any extra window width becomes symmetric side margins.
+    private func applyReadingWidth() {
+        guard let scrollView else { return }
+        let available = scrollView.contentView.bounds.width
+        let target = CGFloat(PreferencesStore.shared.readingWidth)
+        let side = max(Self.minimumSideInset, ((available - target) / 2).rounded(.down))
+        for view in [textView, readTextView].compactMap({ $0 }) where view.textContainerInset.width != side {
+            view.textContainerInset = NSSize(width: side, height: Self.topInset)
+        }
+    }
+
+    static let minimumSideInset: CGFloat = 40
+    static let topInset: CGFloat = 32
 
     @objc private func preferencesDidChange() {
         rebuildContext()
@@ -103,15 +130,17 @@ final class DocumentViewController: NSViewController {
             guard let self else { return }
             let newText = self.document.text
             let currentLen = self.storage.length
-            // Avoid notifying the storage delegate recursively — the storage
-            // will post an editedCharacters event that funnels back through
-            // NSTextStorageDelegate and would re-set document.text to the same
-            // value it just got from disk. That's a no-op, but still noisy.
+            // Direct storage replacement: bypasses the text view's
+            // shouldChangeText/didChangeText, so nothing lands on the undo
+            // stack and the document stays clean after the reload.
             self.storage.replaceCharacters(
                 in: NSRange(location: 0, length: currentLen),
                 with: newText
             )
             self.storage.applyHighlightingNow()
+            // A reload is not undoable and must not leave stale undo entries
+            // that would re-apply pre-reload text.
+            self.document.undoManager?.removeAllActions()
             if self.isReadMode { self.renderReadView() }
         }
     }
@@ -160,19 +189,62 @@ final class DocumentViewController: NSViewController {
         readView.autoresizingMask = [.width]
         readView.backgroundColor = textView?.backgroundColor ?? .textBackgroundColor
         readView.linkTextAttributes = textView?.linkTextAttributes ?? [:]
+        readView.delegate = self
         self.readTextView = readView
+        applyReadingWidth()
         return readView
     }
 
     private func renderReadView() {
         guard let readTextView, let context = storage.highlightContext else { return }
-        let rendered = readRenderer.render(
-            document.text,
-            context: context,
-            baseURL: document.fileURL?.deletingLastPathComponent()
-        )
-        readTextView.textStorage?.setAttributedString(rendered)
+        readTextView.textStorage?.setAttributedString(renderedDocument(context: context))
         readTextView.backgroundColor = textView?.backgroundColor ?? readTextView.backgroundColor
+    }
+
+    /// The document rendered for display-only use (Read mode, printing).
+    func renderedDocument(context: HighlightContext) -> NSAttributedString {
+        let folder = document.fileURL?.deletingLastPathComponent()
+        if let folder {
+            // Sibling images need the folder's security scope open before
+            // NSImage(contentsOf:) can read them.
+            FolderAccess.shared.activateGrant(for: folder)
+        }
+        return readRenderer.render(document.text, context: context, baseURL: folder)
+    }
+
+    // MARK: - Printing
+
+    /// A text view laid out at `pageWidth` for `NSPrintOperation`, in a
+    /// print-safe palette (dark text on white regardless of the theme).
+    func makePrintView(pageWidth: CGFloat) -> NSView {
+        let prefs = PreferencesStore.shared
+        let size = CGFloat(prefs.fontSize)
+        let context = HighlightContext(
+            baseFont: PreferencesStore.nsFont(family: prefs.fontFamily, size: size),
+            textColor: .black,
+            secondaryColor: NSColor(white: 0.45, alpha: 1),
+            accentColor: NSColor(srgbRed: 0, green: 0.3, blue: 0.7, alpha: 1),
+            codeFont: PreferencesStore.nsFont(family: .mono, size: max(10, size * 0.92)),
+            codeBackground: NSColor(white: 0.94, alpha: 1),
+            lineHeightMultiple: CGFloat(prefs.lineHeight)
+        )
+        let printStorage = NSTextStorage()
+        let layoutManager = MarkdownLayoutManager()
+        printStorage.addLayoutManager(layoutManager)
+        let container = NSTextContainer(size: NSSize(width: pageWidth, height: CGFloat.greatestFiniteMagnitude))
+        container.widthTracksTextView = true
+        layoutManager.addTextContainer(container)
+        let view = NSTextView(frame: NSRect(x: 0, y: 0, width: pageWidth, height: 10), textContainer: container)
+        view.isEditable = false
+        view.drawsBackground = false
+        view.textContainerInset = .zero
+        view.isVerticallyResizable = true
+        view.isHorizontallyResizable = false
+        view.maxSize = NSSize(width: pageWidth, height: CGFloat.greatestFiniteMagnitude)
+        printStorage.setAttributedString(renderedDocument(context: context))
+        layoutManager.ensureLayout(for: container)
+        view.sizeToFit()
+        return view
     }
 
     private func rebuildContext() {
@@ -193,23 +265,33 @@ final class DocumentViewController: NSViewController {
             secondaryColor: NSColor.fromHex(palette.secondary) ?? .secondaryLabelColor,
             accentColor: NSColor.fromHex(palette.accent) ?? .controlAccentColor,
             codeFont: codeFont,
-            codeBackground: NSColor.fromHex(palette.codeBackground) ?? NSColor(white: 0.95, alpha: 1)
+            codeBackground: NSColor.fromHex(palette.codeBackground) ?? NSColor(white: 0.95, alpha: 1),
+            lineHeightMultiple: CGFloat(prefs.lineHeight)
         )
         if let bg = NSColor.fromHex(palette.background) {
             textView?.backgroundColor = bg
             scrollView?.backgroundColor = bg
+            readTextView?.backgroundColor = bg
         }
         if let accent = NSColor.fromHex(palette.accent) {
-            textView?.linkTextAttributes = [
+            let linkAttributes: [NSAttributedString.Key: Any] = [
                 .foregroundColor: accent,
                 .underlineStyle: 0
             ]
+            textView?.linkTextAttributes = linkAttributes
+            // The read view keeps its own copy; without this a theme change
+            // leaves its links in the previous accent color.
+            readTextView?.linkTextAttributes = linkAttributes
         }
         if let selection = NSColor.fromHex(palette.selection) {
             textView?.selectedTextAttributes = [
                 .backgroundColor: selection
             ]
+            readTextView?.selectedTextAttributes = [
+                .backgroundColor: selection
+            ]
         }
+        applyReadingWidth()
         storage.applyHighlightingNow()
         if isReadMode { renderReadView() }
     }
@@ -235,6 +317,19 @@ final class DocumentViewController: NSViewController {
     }
 }
 
+extension DocumentViewController: NSTextViewDelegate {
+    /// Read-mode links: the "Allow access to folder…" placeholder link asks
+    /// for a folder grant and re-renders; every other link opens normally.
+    func textView(_ textView: NSTextView, clickedOnLink link: Any, at charIndex: Int) -> Bool {
+        guard let folder = FolderAccess.folder(fromGrantLink: link) else { return false }
+        FolderAccess.shared.requestGrant(for: folder, from: view.window) { [weak self] granted in
+            guard granted, let self, self.isReadMode else { return }
+            self.renderReadView()
+        }
+        return true
+    }
+}
+
 extension DocumentViewController: NSMenuItemValidation {
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         if menuItem.action == #selector(toggleReadMode(_:)) {
@@ -253,9 +348,13 @@ extension DocumentViewController: NSTextStorageDelegate {
     ) {
         guard editedMask.contains(.editedCharacters) else { return }
         let snapshot = textStorage.string
-        Task { @MainActor in
+        // The delegate is invoked on the main thread inside processEditing.
+        MainActor.assumeIsolated {
             self.document.text = snapshot
-            self.document.updateChangeCount(.changeDone)
+            // Change counting is left to the document's undo manager (the text
+            // view registers every edit there, so ⌘Z back to the saved state
+            // reads as clean). An explicit changeDone here would make every
+            // undo/redo *increase* the change count.
         }
     }
 }

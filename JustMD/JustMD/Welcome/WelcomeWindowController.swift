@@ -45,15 +45,20 @@ final class WelcomeWindowController: NSWindowController {
         }
         panel.nameFieldStringValue = "Untitled.md"
         panel.canCreateDirectories = true
-        panel.begin { response in
+        let handler: (NSApplication.ModalResponse) -> Void = { [weak self] response in
             guard response == .OK, let url = panel.url else { return }
             do {
                 try "".write(to: url, atomically: true, encoding: .utf8)
                 NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, _ in }
-                self.window?.close()
+                self?.window?.close()
             } catch {
                 NSAlert(error: error).runModal()
             }
+        }
+        if let window {
+            panel.beginSheetModal(for: window, completionHandler: handler)
+        } else {
+            panel.begin(completionHandler: handler)
         }
     }
 

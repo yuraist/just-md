@@ -1,6 +1,6 @@
 # JustMD
 
-A native macOS markdown editor. Open a `.md` file and the syntax disappears: markers hide on every line except the one you're editing (Bear-style), links show their text only, lists get real bullets, rules become hairlines. Flip to **Read mode** (⇧⌘E) for a fully rendered view with real table grids, checkboxes, and inline images. No file browser, no cloud, no sync, no tabs, no sidebars — inspired by Bear, iA Writer, and Medium.
+A native macOS markdown editor. Open a `.md` file and the syntax disappears: markers hide on every line except the one you're editing (Bear-style), links show their text only, lists get real bullets, rules become hairlines. Flip to **Read mode** (⇧⌘E) for a fully rendered view with real table grids, checkboxes, and inline images. Print (or Save as PDF) prints that rendered view. No file browser, no cloud, no sync, no tabs, no sidebars — inspired by Bear, iA Writer, and Medium.
 
 > **Status:** 1.0 candidate — feature-complete, release work remains. See [`docs/roadmap.md`](docs/roadmap.md) for what's done, the mini-roadmap, and the production-readiness checklist; [`docs/distribution.md`](docs/distribution.md) for App Store / direct-download shipping options; [`docs/known-issues.md`](docs/known-issues.md) for open non-blockers.
 
@@ -37,8 +37,7 @@ AppKit document-based app (`NSDocument` per file) with SwiftUI for the Welcome a
 | `Welcome/` | SwiftUI Welcome window: New / Open / Drop / Recent. |
 | `Preferences/` | SwiftUI Preferences + Manage Themes (colorpickers). Persistence via `UserDefaults`. |
 
-Full design: [`docs/plans/2026-04-18-just-md-design.md`](docs/plans/2026-04-18-just-md-design.md).
-Implementation plans: [`docs/plans/2026-04-18-just-md-implementation.md`](docs/plans/2026-04-18-just-md-implementation.md), [`docs/plans/2026-06-11-editor-rework.md`](docs/plans/2026-06-11-editor-rework.md).
+Product scope and shortcuts: [`docs/product.md`](docs/product.md).
 
 ## Dependencies (SPM)
 
@@ -47,7 +46,7 @@ Implementation plans: [`docs/plans/2026-04-18-just-md-implementation.md`](docs/p
 
 ## Tests
 
-124 tests as of the 2026-06 editor rework. Swift Testing (`@Test`, `@Suite`, `#expect`).
+137 tests as of the 2026-09 release QA pass (see [`docs/known-issues.md`](docs/known-issues.md) for what it covered). Swift Testing (`@Test`, `@Suite`, `#expect`).
 
 Run: `xcodebuild ... -only-testing:JustMDTests test`.
 

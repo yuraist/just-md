@@ -1,6 +1,6 @@
 # Roadmap & Production Readiness
 
-Updated 2026-06-11. Companion docs: [`known-issues.md`](known-issues.md) for open bug detail,
+Updated 2026-09-07 (release QA pass). Companion docs: [`known-issues.md`](known-issues.md) for open bug detail,
 [`distribution.md`](distribution.md) for how to ship.
 
 ## What's done (the 2026-06 editor rework)
@@ -24,8 +24,11 @@ The editor went from "renders raw markdown with a 0.5–1 s lag" to a Bear-class
   clickable links.
 - **App Store prep** — icon set, sandbox + hardened runtime, productivity category,
   copyright, encryption-exemption key.
-- **124 tests** (Swift Testing), green at every commit, including offscreen-render
+- **137 tests** (Swift Testing), green at every commit, including offscreen-render
   visual verification.
+- **Release QA pass (2026-09)** — line height and reading width wired, nested
+  lists, Read-mode rule/code-block fixes, Welcome/Settings/menu polish,
+  Print → PDF, and sandbox folder grants for Read-mode images.
 
 ## Mini-roadmap
 
@@ -36,8 +39,8 @@ Code is feature-complete for 1.0. What remains is release work, not engineering:
 1. Pick the distribution channel(s) — see [`distribution.md`](distribution.md).
 2. App Store Connect record: name, subtitle, description, keywords, screenshots,
    privacy "Data Not Collected" labels, support + privacy-policy URLs.
-3. Manual QA pass: open/edit/save, autosave + external-change reload, themes,
-   Read mode, large file, undo across formatting.
+3. ~~Manual QA pass~~ — done 2026-09-07 (16 defects fixed, Print/PDF and
+   folder access for Read-mode images added; see [`known-issues.md`](known-issues.md)).
 4. Decide the license line in README (currently TBD) and pricing (free / paid / freemium).
 
 ### v1.1 — polish
@@ -57,7 +60,7 @@ Code is feature-complete for 1.0. What remains is release work, not engineering:
 | Area | Status |
 |---|---|
 | Typing performance | ✅ incremental restyle, perf regression test |
-| Test suite | ✅ 124 tests green |
+| Test suite | ✅ 137 tests green |
 | Undo correctness | ✅ all programmatic edits via `shouldChangeText`/`didChangeText` |
 | App Sandbox | ✅ `ENABLE_APP_SANDBOX`, user-selected files read/write |
 | Hardened runtime | ✅ |
@@ -68,4 +71,5 @@ Code is feature-complete for 1.0. What remains is release work, not engineering:
 | App Store metadata | ⬜ screenshots, description, keywords, privacy labels |
 | Privacy policy + support URL | ⬜ required by App Store review |
 | License / pricing decision | ⬜ |
+| Manual QA pass | ✅ 2026-09-07, all findings fixed or documented |
 | Known non-blockers | see [`known-issues.md`](known-issues.md) — none block 1.0 |

@@ -20,6 +20,7 @@ final class MarkdownReadRenderer {
     func render(_ source: String, context: HighlightContext, baseURL: URL? = nil) -> NSAttributedString {
         let result = NSMutableAttributedString()
         guard !source.isEmpty else { return result }
+        lineHeightMultiple = max(1.05, context.lineHeightMultiple)
 
         cmark_gfm_core_extensions_ensure_registered()
         guard let parser = cmark_parser_new(CMARK_OPT_DEFAULT) else { return result }
@@ -101,14 +102,19 @@ final class MarkdownReadRenderer {
         case CMARK_NODE_THEMATIC_BREAK:
             let style = blockStyle()
             style.paragraphSpacingBefore = 8
+            // The rule attribute stops before the newline: the layout manager
+            // anchors the rule on the character right after the tagged range,
+            // which must be this line's own newline — tagging it too would
+            // push the rule onto the next block's first line.
             let rule = NSMutableAttributedString(
-                string: "\u{00A0}\n",
+                string: "\u{00A0}",
                 attributes: [
                     .font: context.baseFont,
                     MarkdownAttribute.thematicBreak: true,
                     .paragraphStyle: style,
                 ]
             )
+            rule.append(NSAttributedString(string: "\n", attributes: [.font: context.baseFont, .paragraphStyle: style]))
             out.append(rule)
 
         case CMARK_NODE_HTML_BLOCK:
@@ -141,7 +147,9 @@ final class MarkdownReadRenderer {
         }
 
         let attributed: NSMutableAttributedString
-        if let codeHighlighter,
+        // No language → plain text; Highlightr's auto-detection misfires on
+        // short or prose-like blocks.
+        if let codeHighlighter, let language,
            let highlighted = codeHighlighter.cachedHighlight(code, language: language)
             ?? codeHighlighter.highlight(code, language: language),
            highlighted.length == (code as NSString).length {
@@ -158,10 +166,20 @@ final class MarkdownReadRenderer {
         let full = NSRange(location: 0, length: attributed.length)
         attributed.addAttribute(.backgroundColor, value: context.codeBackground, range: full)
         let style = blockStyle()
+        style.lineHeightMultiple = context.codeLineHeightMultiple
+        style.paragraphSpacing = 0
         style.firstLineHeadIndent = 6
         style.headIndent = 6
-        append(attributed, style: style, to: out)
+        append(attributed, style: style, to: out, overrideStyle: true)
+        // The background band fills the paragraph spacing too, so a plain
+        // spacer line separates consecutive blocks (and the next paragraph).
+        out.append(NSAttributedString(string: "\n", attributes: [
+            .font: NSFont.systemFont(ofSize: 6),
+            .paragraphStyle: blockStyle(),
+        ]))
     }
+
+    private var lineHeightMultiple: CGFloat = 1.05
 
     private func appendList(
         _ node: UnsafeMutablePointer<cmark_node>,
@@ -455,7 +473,18 @@ final class MarkdownReadRenderer {
         var s = state
         s.color = context.secondaryColor
         let label = alt.isEmpty ? urlString : alt
-        return text("🖼 \(label)", state: s, context: context)
+        let placeholder = NSMutableAttributedString(attributedString: text("🖼 \(label)", state: s, context: context))
+        // A local image next to a saved document is most likely readable
+        // once the user allows its folder — offer that inline.
+        if !urlString.isEmpty, baseURL != nil,
+           let url = URL(string: urlString, relativeTo: baseURL), url.isFileURL,
+           let grant = FolderAccess.grantLink(for: url.deletingLastPathComponent()) {
+            var link = state
+            link.link = grant
+            placeholder.append(text("  ", state: s, context: context))
+            placeholder.append(text("Allow access to folder…", state: link, context: context))
+        }
+        return placeholder
     }
 
     // MARK: - Helpers
@@ -463,7 +492,7 @@ final class MarkdownReadRenderer {
     private func blockStyle() -> NSMutableParagraphStyle {
         let style = NSMutableParagraphStyle()
         style.paragraphSpacing = 8
-        style.lineHeightMultiple = 1.05
+        style.lineHeightMultiple = lineHeightMultiple
         return style
     }
 

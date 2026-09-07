@@ -27,7 +27,10 @@ final class MarkdownTextView: NSTextView {
         self.markerVisibility = visibility
 
         self.isRichText = false
-        self.usesFindBar = false
+        // Edit → Find (⌘F) shows the inline find bar; without it NSTextView
+        // falls back to the legacy floating find panel.
+        self.usesFindBar = true
+        self.isIncrementalSearchingEnabled = true
         self.allowsUndo = true
         self.isAutomaticLinkDetectionEnabled = false
         self.isAutomaticSpellingCorrectionEnabled = false

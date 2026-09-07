@@ -10,7 +10,8 @@ A minimalist native macOS markdown editor. Like Microsoft Word, but for markdown
 - **Renders markdown inline.** Headings, bold, italic, strikethrough, links, inline code, fenced code blocks with syntax highlighting, lists, blockquotes, tables — all styled as you type.
 - **Quick formatting.** `⌘B` wraps the selection in `**…**`. `⌘I` wraps in `*…*`.
 - **Themes.** Five builtin presets (Follow System, White, Sepia, Gray, Black) plus custom presets with a six-color palette. Import/export `.justmd-theme` JSON files to share with friends.
-- **Typography.** Serif / Sans / Mono font families, adjustable size (`⌘+` / `⌘−` / `⌘0`) and line height.
+- **Typography.** Serif / Sans / Mono font families, adjustable size (`⌘+` / `⌘−` / `⌘0`), line height, and reading width (the text column is centered when the window is wider).
+- **Read mode.** `⇧⌘E` flips to a rendered page: real tables, checkboxes, inline images. Images next to the document need a one-time "Allow access to folder" (App Sandbox); the placeholder offers it.
 
 ## What it doesn't do (on purpose)
 
@@ -20,7 +21,7 @@ A minimalist native macOS markdown editor. Like Microsoft Word, but for markdown
 - No tag system, no project management, no plugins.
 - No outline/TOC, no split view, no preview-only mode.
 - No Find & Replace (yet).
-- No export to PDF/HTML (yet).
+- No HTML export (yet). PDF: `File → Print…` → Save as PDF prints the rendered document.
 - No mermaid diagrams or LaTeX (yet).
 
 These are intentional MVP trade-offs. Some may ship in future versions, but the core principle stays: **one file, one window, one focused writing surface.**
@@ -47,6 +48,9 @@ These are intentional MVP trade-offs. Some may ship in future versions, but the 
 | `⌘0` | Reset font size |
 | `⌃⌘1` / `⌃⌘2` / `⌃⌘3` | Serif / Sans / Mono |
 | `⌘`-click a link | Open in browser |
+| `⇧⌘E` | Reading mode |
+| `⌘F` | Find |
+| `⌘P` | Print / Save as PDF |
 
 ## File formats
 

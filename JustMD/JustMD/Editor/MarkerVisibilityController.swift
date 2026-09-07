@@ -86,6 +86,7 @@ nonisolated final class MarkerVisibilityController: NSObject {
         let safe = NSRange(location: start, length: length)
         lm.invalidateGlyphs(forCharacterRange: safe, changeInLength: 0, actualCharacterRange: nil)
         lm.invalidateLayout(forCharacterRange: safe, actualCharacterRange: nil)
+        lm.invalidateDisplay(forCharacterRange: safe)
     }
 }
 

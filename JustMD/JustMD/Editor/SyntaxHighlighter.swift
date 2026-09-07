@@ -27,6 +27,9 @@ nonisolated struct HighlightContext {
     var accentColor: NSColor
     var codeFont: NSFont
     var codeBackground: NSColor
+    /// Prose line height as a multiple of the font's natural line height
+    /// (the "Line height" preference). Code and tables stay tighter.
+    var lineHeightMultiple: CGFloat
 
     init(
         baseFont: NSFont,
@@ -34,7 +37,8 @@ nonisolated struct HighlightContext {
         secondaryColor: NSColor,
         accentColor: NSColor,
         codeFont: NSFont,
-        codeBackground: NSColor
+        codeBackground: NSColor,
+        lineHeightMultiple: CGFloat = 1.0
     ) {
         self.baseFont = baseFont
         self.textColor = textColor
@@ -42,6 +46,18 @@ nonisolated struct HighlightContext {
         self.accentColor = accentColor
         self.codeFont = codeFont
         self.codeBackground = codeBackground
+        self.lineHeightMultiple = lineHeightMultiple
+    }
+
+    /// Line height for code blocks and tables: airy prose spacing makes
+    /// monospaced blocks look double-spaced, so cap it.
+    var codeLineHeightMultiple: CGFloat { min(lineHeightMultiple, 1.2) }
+
+    /// A fresh paragraph style carrying the prose line height.
+    func proseParagraphStyle() -> NSMutableParagraphStyle {
+        let style = NSMutableParagraphStyle()
+        style.lineHeightMultiple = lineHeightMultiple
+        return style
     }
 }
 
@@ -143,7 +159,13 @@ nonisolated final class SyntaxHighlighter {
     }
 
     private func baseAttributes(_ ctx: HighlightContext) -> [NSAttributedString.Key: Any] {
-        return [.font: ctx.baseFont, .foregroundColor: ctx.textColor]
+        return [.font: ctx.baseFont, .foregroundColor: ctx.textColor, .paragraphStyle: ctx.proseParagraphStyle()]
+    }
+
+    private func codeParagraphStyle(_ ctx: HighlightContext) -> NSMutableParagraphStyle {
+        let style = NSMutableParagraphStyle()
+        style.lineHeightMultiple = ctx.codeLineHeightMultiple
+        return style
     }
 
     private func applyBlock(_ block: Block, source: String, storage: NSTextStorage, context: HighlightContext) {
@@ -167,6 +189,7 @@ nonisolated final class SyntaxHighlighter {
             if NSMaxRange(range) <= storage.length {
                 storage.addAttribute(.font, value: context.codeFont, range: range)
                 storage.addAttribute(.backgroundColor, value: context.codeBackground, range: range)
+                storage.addAttribute(.paragraphStyle, value: codeParagraphStyle(context), range: range)
             }
             for fenceRange in fenceRanges where NSMaxRange(fenceRange) <= storage.length {
                 storage.addAttribute(MarkdownAttribute.marker, value: true, range: fenceRange)
@@ -183,7 +206,9 @@ nonisolated final class SyntaxHighlighter {
             if let language, !language.isEmpty, NSMaxRange(contentRange) <= storage.length {
                 storage.addAttribute(MarkdownAttribute.codeLanguage, value: language, range: contentRange)
             }
-            if let codeHighlighter,
+            // No language → no token colors. Highlightr's auto-detection
+            // guesses wildly on short snippets and prose-like text.
+            if let codeHighlighter, let language, !language.isEmpty,
                contentRange.length > 0,
                NSMaxRange(contentRange) <= storage.length {
                 let codeText = (source as NSString).substring(with: contentRange)
@@ -204,7 +229,7 @@ nonisolated final class SyntaxHighlighter {
             guard NSMaxRange(range) <= storage.length else { break }
             storage.addAttribute(.foregroundColor, value: context.secondaryColor, range: range)
             storage.addAttribute(MarkdownAttribute.blockQuote, value: true, range: range)
-            let style = NSMutableParagraphStyle()
+            let style = context.proseParagraphStyle()
             style.firstLineHeadIndent = 16
             style.headIndent = 16
             storage.addAttribute(.paragraphStyle, value: style, range: range)
@@ -238,7 +263,7 @@ nonisolated final class SyntaxHighlighter {
                     let prefix = ns.substring(with: prefixRange)
                     indent = (prefix as NSString).size(withAttributes: [.font: context.baseFont]).width
                 }
-                let style = NSMutableParagraphStyle()
+                let style = context.proseParagraphStyle()
                 style.headIndent = indent
                 if NSMaxRange(item.range) <= storage.length {
                     storage.addAttribute(.paragraphStyle, value: style, range: item.range)
@@ -255,6 +280,7 @@ nonisolated final class SyntaxHighlighter {
         case .table(let range):
             if NSMaxRange(range) <= storage.length {
                 storage.addAttribute(.font, value: context.codeFont, range: range)
+                storage.addAttribute(.paragraphStyle, value: codeParagraphStyle(context), range: range)
                 styleTable(in: range, source: source, storage: storage, context: context)
             }
 

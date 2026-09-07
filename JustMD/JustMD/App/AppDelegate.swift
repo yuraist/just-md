@@ -17,15 +17,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         installViewMenu()
         installShowWelcomeMenuItem()
         wirePreferencesMenuItem()
-
-        // Show welcome window on launch if no documents are being opened.
-        // NSDocumentController.openDocument may already be in flight from a "Open Recent" / file association.
-        // Use a delayed check so doc-opening machinery has run first.
-        DispatchQueue.main.async {
-            if NSDocumentController.shared.documents.isEmpty {
-                WelcomeWindowController.shared.showWindow(self)
-            }
-        }
+        // The Welcome window is shown through applicationOpenUntitledFile(_:),
+        // which AppKit invokes only when the launch (or a Dock click) has
+        // nothing else to show — no file to open, no windows restored. A
+        // manual "documents.isEmpty" check here fires before state
+        // restoration has re-created the documents and shows Welcome on top
+        // of them.
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
@@ -62,12 +59,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool {
-        return false
+        return true
     }
 
     func applicationOpenUntitledFile(_ sender: NSApplication) -> Bool {
-        // System asks us to open an untitled doc (e.g. dock icon click with no windows).
-        // Show welcome instead.
+        // Launch with nothing to open, or a Dock click / reopen with no
+        // visible windows. Existing documents come back to the front;
+        // otherwise Welcome stands in for an untitled document.
+        let documents = NSDocumentController.shared.documents
+        if !documents.isEmpty {
+            for document in documents { document.showWindows() }
+            return true
+        }
         WelcomeWindowController.shared.showWindow(self)
         return true
     }

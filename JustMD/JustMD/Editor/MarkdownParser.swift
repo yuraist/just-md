@@ -252,6 +252,21 @@ nonisolated final class MarkdownParser: Sendable {
         let ordered = (listType == CMARK_ORDERED_LIST)
 
         var items: [ListItem] = []
+        collectListItems(of: node, source: source, offsets: offsets, into: &items)
+
+        let range = nodeRange(node, source: source, offsets: offsets)
+        return .list(ordered: ordered, items: items, range: range)
+    }
+
+    /// Flattens a list and every list nested inside its items into one item
+    /// array, document order. Nested items carry their own marker range, so
+    /// bullets, checkboxes and hanging indents apply at every depth.
+    private func collectListItems(
+        of node: UnsafeMutablePointer<cmark_node>,
+        source: String,
+        offsets: ByteOffsetTable,
+        into items: inout [ListItem]
+    ) {
         var itemNode = cmark_node_first_child(node)
         while let item = itemNode {
             if cmark_node_get_type(item) == CMARK_NODE_ITEM {
@@ -291,12 +306,18 @@ nonisolated final class MarkdownParser: Sendable {
                 }
 
                 items.append(ListItem(range: itemRange, markerRange: markerRange, taskState: taskState))
+
+                // Nested lists live as children of the item, after its paragraph.
+                var inner = cmark_node_first_child(item)
+                while let child = inner {
+                    if cmark_node_get_type(child) == CMARK_NODE_LIST {
+                        collectListItems(of: child, source: source, offsets: offsets, into: &items)
+                    }
+                    inner = cmark_node_next(child)
+                }
             }
             itemNode = cmark_node_next(item)
         }
-
-        let range = nodeRange(node, source: source, offsets: offsets)
-        return .list(ordered: ordered, items: items, range: range)
     }
 
     /// Emits a `.codeBlock` only for fenced code blocks. Indented code blocks
@@ -439,18 +460,31 @@ nonisolated final class MarkdownParser: Sendable {
         }
     }
 
+    /// `enclosing` is the parent emphasis span (range + delimiter length) when
+    /// recursing into nested emphasis. cmark-gfm reports a nested
+    /// strong/emph node with the *same* source range as its parent
+    /// (`***x***` → emph and strong both span all 17 characters), so the
+    /// child's range is inset by the parent's delimiters before its own
+    /// markers are located — otherwise the middle asterisks stay visible.
     private func collectInlineSpans(
         parent: UnsafeMutablePointer<cmark_node>,
         substring: String,
         subOffsets: ByteOffsetTable,
         shift: Int,
+        enclosing: (range: NSRange, delimiter: Int)? = nil,
         into spans: inout [InlineSpan]
     ) {
         var child = cmark_node_first_child(parent)
         while let node = child {
             let type = cmark_node_get_type(node)
             let localRange = nodeRange(node, source: substring, offsets: subOffsets)
-            let shifted = NSRange(location: localRange.location + shift, length: localRange.length)
+            var shifted = NSRange(location: localRange.location + shift, length: localRange.length)
+            if let enclosing, shifted == enclosing.range, shifted.length > enclosing.delimiter * 2 {
+                shifted = NSRange(
+                    location: shifted.location + enclosing.delimiter,
+                    length: shifted.length - enclosing.delimiter * 2
+                )
+            }
 
             switch type {
             case CMARK_NODE_STRONG:
@@ -458,13 +492,15 @@ nonisolated final class MarkdownParser: Sendable {
                 spans.append(.bold(range: shifted, markerRanges: markers))
                 // Recurse to catch nested spans.
                 collectInlineSpans(
-                    parent: node, substring: substring, subOffsets: subOffsets, shift: shift, into: &spans
+                    parent: node, substring: substring, subOffsets: subOffsets, shift: shift,
+                    enclosing: (shifted, 2), into: &spans
                 )
             case CMARK_NODE_EMPH:
                 let markers = pairedDelimiterMarkers(range: shifted, in: substring, shift: shift, maxLen: 1)
                 spans.append(.italic(range: shifted, markerRanges: markers))
                 collectInlineSpans(
-                    parent: node, substring: substring, subOffsets: subOffsets, shift: shift, into: &spans
+                    parent: node, substring: substring, subOffsets: subOffsets, shift: shift,
+                    enclosing: (shifted, 1), into: &spans
                 )
             case CMARK_NODE_CODE:
                 // cmark reports the inline code node range as the content only (excluding
@@ -493,7 +529,8 @@ nonisolated final class MarkdownParser: Sendable {
                     let markers = pairedDelimiterMarkers(range: shifted, in: substring, shift: shift, maxLen: 2)
                     spans.append(.strike(range: shifted, markerRanges: markers))
                     collectInlineSpans(
-                        parent: node, substring: substring, subOffsets: subOffsets, shift: shift, into: &spans
+                        parent: node, substring: substring, subOffsets: subOffsets, shift: shift,
+                        enclosing: (shifted, 2), into: &spans
                     )
                 }
             }
