@@ -18,12 +18,18 @@ Done by automation:
 - ✅ Listing texts ready: `docs/appstore-metadata.md`
 - ✅ Landing + privacy policy live in the public `yuraist/justmd` repo
   (GitHub Pages)
-- ✅ 1.0 QA pass complete ([PRI-42](https://linear.app/nuta-life/issue/PRI-42));
-  the exported `.pkg` predates it — re-archive with build number 2 before uploading
+- ✅ 1.0 QA pass complete ([PRI-42](https://linear.app/nuta-life/issue/PRI-42))
+- ✅ **Xcode Cloud** (set up 2026-09-07, same shape as Prism/Nuta): product
+  `JustMD`, workflow **Release** — every push to `master` runs `JustMDTests`
+  on a Mac, then archives a Mac App Store eligible build with Xcode "Latest
+  Release". Xcode Cloud assigns the build number, so no local `.pkg` export
+  or `altool` upload is needed for App Store builds; pick the build in ASC.
+  Manual builds: Xcode → Integrate → Xcode Cloud → Manage Workflows, or
+  `POST /v1/ciBuildRuns` with the workflow id (`scripts/asc-jwt.py` for the JWT).
 
 Blocked on owner-only steps:
 
-1. **Create the app record** ([PRI-43](https://linear.app/nuta-life/issue/PRI-43)) — appstoreconnect.apple.com → My Apps → New App
+1. ~~**Create the app record**~~ — done; the record is `6779422717`. ([PRI-43](https://linear.app/nuta-life/issue/PRI-43) now tracks build 2 via Xcode Cloud.) Original notes: appstoreconnect.apple.com → My Apps → New App
    (macOS, bundle `com.nuta.JustMD`; names in `docs/appstore-metadata.md`).
    The API cannot create app records. Then upload is one command:
    `xcrun altool --upload-app -f build/export-appstore/JustMD.pkg -t macos

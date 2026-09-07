@@ -23,6 +23,10 @@ xcodebuild -project JustMD/JustMD.xcodeproj -scheme JustMD -destination 'platfor
 xcodebuild -project JustMD/JustMD.xcodeproj -scheme JustMD -destination 'platform=macOS' -only-testing:JustMDTests test
 ```
 
+## Continuous integration
+
+Xcode Cloud builds every push to `master` (workflow **Release**: tests, then a Mac App Store archive). The shared scheme lives in `JustMD/JustMD.xcodeproj/xcshareddata/xcschemes/`. See [`docs/distribution.md`](docs/distribution.md).
+
 ## Architecture
 
 AppKit document-based app (`NSDocument` per file) with SwiftUI for the Welcome and Preferences windows.
