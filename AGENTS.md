@@ -6,6 +6,4 @@ Keep the native NSDocument editor, read mode and existing app scope intact. Use 
 
 Keep credentials and generated signing/release artifacts local. Shared appstoreconnect and native-apple-design skills are available under ~/.agents/skills.
 
-## Agent skills
-
-For engineering workflows, read `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`, and `docs/agents/domain.md` as needed. Shared skills live in `~/.agents/skills`.
+Work is tracked in the Linear project "JustMD 1.0" (Prism team); use it instead of a repository-local tracker.
