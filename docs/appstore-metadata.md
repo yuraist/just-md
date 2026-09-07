@@ -1,72 +1,52 @@
 # App Store Metadata — v1.0
 
-Ready to paste / push via the ASC MCP once the app record exists
-([PRI-43](https://linear.app/nuta-life/issue/PRI-43)); filling it in is
-[PRI-44](https://linear.app/nuta-life/issue/PRI-44).
+Live in App Store Connect (app `6779422717`, version 1.0) since 2026-09-07; this
+file mirrors it. Update both when the listing changes.
 
-## App record (create at appstoreconnect.apple.com → My Apps → ＋ → New App)
+## App record
 
-- **Platform:** macOS
-- **Name:** `JustMD` (fallbacks if taken: `JustMD — Markdown Editor`, `JustMD: Markdown, Just Clean`)
+- **Platform:** macOS · **Bundle ID:** `com.nuta.JustMD` · **SKU:** `just.md.nuta.life`
 - **Primary language:** English (U.S.)
-- **Bundle ID:** `com.nuta.JustMD` (already registered, shows in the dropdown)
-- **SKU:** `com.nuta.JustMD`
+- **Category:** Productivity, secondary Developer Tools
+- **Price:** Free (USA base territory)
+- **Age rating:** 4+
 
 ## Version info
 
-- **Subtitle** (≤30 chars): `Markdown, without the noise`
-- **Promotional text** (≤170 chars):
-  `Open any .md file and see a clean document — syntax hides while you write, reappears on the line you edit. Native, instant, no account.`
-- **Keywords** (≤100 chars):
-  `markdown,md,editor,text,writing,notes,readme,viewer,bear,typora,plain text,writer,document`
-- **Support URL:** `https://yuraist.github.io/justmd/`
-- **Privacy Policy URL:** `https://yuraist.github.io/justmd/privacy.html`
-- **Category:** Productivity (already set in the binary)
-- **Price:** Free (decide before submit; can add paid later)
+- **Name** (≤30): `JustMD – Markdown Editor`
+- **Subtitle** (≤30): `Markdown, without the noise`
+- **Promotional text** (≤170): `Open a .md file and read it like a page. The syntax shows up only on the line you're editing, then gets out of the way again.`
+- **Keywords** (≤100): `md,notes,readme,writing,writer,plain text,wysiwyg,distraction free,document,mdown,technical,focus`
+- **Support / marketing URL:** `https://justmd.nuta.life/`
+- **Privacy Policy URL:** `https://justmd.nuta.life/privacy.html`
+- **What's New:** `First release.` (ASC refuses the field before the first release; set it on 1.0.1)
 
 ## Description
 
 ```
-JustMD opens your markdown files the way TextEdit opens text — instantly,
-natively, and without a library, a vault, or an account.
+Open a README and you get the document, not the markup. Headings look like headings, bold reads as bold, links show their text. Put the caret on a line and its markdown comes back, dimmed, so you can edit it. Move on and it hides again.
 
-Instead of raw markup you see the document. Syntax markers hide on every
-line except the one you're editing: headings look like headings, bold reads
-as bold, links show their text. Move the caret onto a line and the markdown
-reappears, dimmed and editable.
+JustMD is a native Mac editor for the .md files you already have. There is no library to import into, no vault, no account. Double-click a file in Finder, or drop it on the icon, and start typing. Autosave and Versions work the way they do in TextEdit.
 
-WRITE
-• Syntax hides as you type, Bear-style — the caret line reveals it
-• Lists get real bullets; task lists get clickable checkboxes
-• Tables align into clean grids while you edit them
-• Fenced code blocks with syntax highlighting
-• ⌘B / ⌘I formatting, full undo, autosave, macOS Versions
+While you write:
+• Lists get real bullets, and task lists get checkboxes you can click.
+• Tables line up into a grid as you type.
+• Fenced code gets syntax colors.
+• ⌘B and ⌘I for bold and italic, full undo, inline find.
+• Files stay plain markdown on disk. Nothing is rewritten or reformatted.
 
-READ
-• One shortcut (⇧⌘E) flips to a fully rendered page
-• Real table grids, inline images, clickable links
+Reading mode (⇧⌘E) turns the file into a finished page: table grids, inline images, clickable links. Print it, or save it as a PDF from the print dialog.
 
-YOURS
-• Plain .md files on disk — no lock-in, no sync, no subscription
-• Five built-in themes plus custom palettes you can export and share
-• Serif, sans, or mono typography with adjustable size and line height
-• Sandboxed and private: the app collects no data at all
+Make it yours: serif, sans or mono type, font size, line height and reading width. Five built-in themes, and custom palettes you can export as a small file and share.
 
-JustMD is for people who live in markdown — notes, READMEs, journals,
-docs — and want a Mac app that treats those files like documents, not
-source code.
-```
+JustMD is sandboxed and collects no data. It works with files anywhere on your Mac and needs macOS 14 or later.
 
-## What's New (v1.0)
-
-```
-Initial release — write markdown without seeing it.
+Built for people who keep notes, journals, READMEs and docs in markdown and want a Mac app that treats those files as documents.
 ```
 
 ## Privacy labels (App Privacy section)
 
-- **Data Not Collected** — the app has no analytics, no network calls with
-  user content, no identifiers.
+- **Data Not Collected** — no analytics, no network calls with user content, no identifiers.
 
 ## Review notes
 
@@ -76,8 +56,14 @@ create or open any .md file (File → New / Open). Markdown syntax hides on
 inactive lines; click a task checkbox to toggle it; ⇧⌘E switches Read mode.
 ```
 
-## Screenshots
+## Screenshots and preview
 
-`marketing/screenshots/appstore-1-editor.png`, `appstore-2-read.png`
-(2880×1800, regenerate any time: `xcodebuild … -only-testing:JustMDTests/AppStoreScreenshots test`,
-then copy from `~/Library/Containers/com.nuta.JustMD/Data/tmp/`).
+Production brief: Linear PRI-51. Current uploads are the June renders from
+`marketing/screenshots/` (2880×1800, `AppStoreScreenshots` test suite). Upload
+with `scripts/asc-upload-screenshot.py`.
+
+## Writing rules for this listing
+
+No competitor names (guideline 2.3.7). No em-dash tricolons, no CAPS section
+headers, no exclamation marks. One concrete scene first, features second,
+what the app deliberately does not do said once.

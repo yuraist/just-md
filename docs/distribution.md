@@ -37,7 +37,7 @@ Blocked on owner-only steps:
 3. **GitHub Pages domain** ([PRI-45](https://linear.app/nuta-life/issue/PRI-45)) — the account-wide custom domain `app.nuta.life`
    is dead (DNS gone), so every Pages URL redirects to it. Either renew the
    domain or remove `CNAME` from the `yuraist.github.io` repo; the landing
-   then serves at `https://yuraist.github.io/justmd/`.
+   then serves at `https://justmd.nuta.life/`.
 
 How to get JustMD 1.0 into users' hands. Two channels, not mutually exclusive —
 many indie Mac apps ship both. Current project state already satisfies the hard
