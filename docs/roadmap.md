@@ -34,16 +34,25 @@ The editor went from "renders raw markdown with a 0.5–1 s lag" to a Bear-class
 
 ### v1.0 — ship it
 
-Code is feature-complete for 1.0. What remains is release work, not engineering:
+Code is feature-complete for 1.0; the QA pass is done (2026-09-07). The
+remaining release work is tracked in Linear, project
+[JustMD 1.0 Release](https://linear.app/nuta-life/project/justmd-10-release-cc787e86c15d)
+(Prism App team):
 
-1. Pick the distribution channel(s) — see [`distribution.md`](distribution.md).
-2. App Store Connect record: name, subtitle, description, keywords, screenshots,
-   privacy "Data Not Collected" labels, support + privacy-policy URLs.
-3. ~~Manual QA pass~~ — done 2026-09-07 (16 defects fixed, Print/PDF and
-   folder access for Read-mode images added; see [`known-issues.md`](known-issues.md)).
-4. Decide the license line in README (currently TBD) and pricing (free / paid / freemium).
+| Issue | Step |
+|---|---|
+| [PRI-42](https://linear.app/nuta-life/issue/PRI-42) | ✅ 1.0 release QA pass (16 defects fixed, Print/PDF, folder access for Read-mode images) |
+| [PRI-43](https://linear.app/nuta-life/issue/PRI-43) | Create the App Store Connect app record, bump the build number, re-archive, upload |
+| [PRI-44](https://linear.app/nuta-life/issue/PRI-44) | App Store metadata, screenshots, privacy labels (texts in [`appstore-metadata.md`](appstore-metadata.md)) |
+| [PRI-45](https://linear.app/nuta-life/issue/PRI-45) | Fix the GitHub Pages domain so support / privacy-policy URLs resolve |
+| [PRI-50](https://linear.app/nuta-life/issue/PRI-50) | Decide license and pricing |
+| [PRI-46](https://linear.app/nuta-life/issue/PRI-46) | Launch marketing: landing page, preview video, PR |
+| [PRI-47](https://linear.app/nuta-life/issue/PRI-47) | Submit for App Store review |
+| [PRI-48](https://linear.app/nuta-life/issue/PRI-48) | Developer ID build + notarization (optional direct-download channel) |
 
 ### v1.1 — polish
+
+Tracked as [PRI-49](https://linear.app/nuta-life/issue/PRI-49) (backlog from [`known-issues.md`](known-issues.md)).
 
 - Remote images in Read mode (async download + cache).
 - Table editing ergonomics: Tab to next cell, auto-format column widths.
@@ -68,8 +77,8 @@ Code is feature-complete for 1.0. What remains is release work, not engineering:
 | Export compliance | ✅ `ITSAppUsesNonExemptEncryption = false` |
 | Signing | ✅ automatic, team `N2HCJ99WYH`, bundle `com.nuta.JustMD` |
 | Version | ✅ `MARKETING_VERSION = 1.0`, build 1 |
-| App Store metadata | ⬜ screenshots, description, keywords, privacy labels |
-| Privacy policy + support URL | ⬜ required by App Store review |
-| License / pricing decision | ⬜ |
+| App Store metadata | ⬜ [PRI-44](https://linear.app/nuta-life/issue/PRI-44) |
+| Privacy policy + support URL | ⬜ [PRI-45](https://linear.app/nuta-life/issue/PRI-45) — Pages domain must resolve first |
+| License / pricing decision | ⬜ [PRI-50](https://linear.app/nuta-life/issue/PRI-50) |
 | Manual QA pass | ✅ 2026-09-07, all findings fixed or documented |
 | Known non-blockers | see [`known-issues.md`](known-issues.md) — none block 1.0 |

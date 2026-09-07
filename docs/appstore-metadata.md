@@ -1,6 +1,8 @@
 # App Store Metadata — v1.0
 
-Ready to paste / push via the ASC MCP once the app record exists.
+Ready to paste / push via the ASC MCP once the app record exists
+([PRI-43](https://linear.app/nuta-life/issue/PRI-43)); filling it in is
+[PRI-44](https://linear.app/nuta-life/issue/PRI-44).
 
 ## App record (create at appstoreconnect.apple.com → My Apps → ＋ → New App)
 

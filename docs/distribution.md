@@ -1,6 +1,10 @@
 # Distribution
 
-## Release state (2026-06-11)
+## Release state (2026-09-07)
+
+Open steps are tracked in Linear: project
+[JustMD 1.0 Release](https://linear.app/nuta-life/project/justmd-10-release-cc787e86c15d)
+(Prism App team). Issue numbers below refer to it.
 
 Done by automation:
 
@@ -14,21 +18,23 @@ Done by automation:
 - ✅ Listing texts ready: `docs/appstore-metadata.md`
 - ✅ Landing + privacy policy live in the public `yuraist/justmd` repo
   (GitHub Pages)
+- ✅ 1.0 QA pass complete ([PRI-42](https://linear.app/nuta-life/issue/PRI-42));
+  the exported `.pkg` predates it — re-archive with build number 2 before uploading
 
 Blocked on owner-only steps:
 
-1. **Create the app record** — appstoreconnect.apple.com → My Apps → New App
+1. **Create the app record** ([PRI-43](https://linear.app/nuta-life/issue/PRI-43)) — appstoreconnect.apple.com → My Apps → New App
    (macOS, bundle `com.nuta.JustMD`; names in `docs/appstore-metadata.md`).
    The API cannot create app records. Then upload is one command:
    `xcrun altool --upload-app -f build/export-appstore/JustMD.pkg -t macos
    --apiKey 3PCCY7B92H --apiIssuer <issuer>` (verified working up to the
    missing-record error).
-2. **Developer ID certificate** — cloud signing returned a permission error
+2. **Developer ID certificate** ([PRI-48](https://linear.app/nuta-life/issue/PRI-48)) — cloud signing returned a permission error
    (only the Account Holder may create Developer ID certs). Xcode →
    Settings → Accounts → Manage Certificates → ＋ → Developer ID Application;
    then `xcodebuild -exportArchive … -exportOptionsPlist
    scripts/ExportOptionsDevID.plist` + notarytool + DMG.
-3. **GitHub Pages domain** — the account-wide custom domain `app.nuta.life`
+3. **GitHub Pages domain** ([PRI-45](https://linear.app/nuta-life/issue/PRI-45)) — the account-wide custom domain `app.nuta.life`
    is dead (DNS gone), so every Pages URL redirects to it. Either renew the
    domain or remove `CNAME` from the `yuraist.github.io` repo; the landing
    then serves at `https://yuraist.github.io/justmd/`.

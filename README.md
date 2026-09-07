@@ -2,7 +2,7 @@
 
 A native macOS markdown editor. Open a `.md` file and the syntax disappears: markers hide on every line except the one you're editing (Bear-style), links show their text only, lists get real bullets, rules become hairlines. Flip to **Read mode** (⇧⌘E) for a fully rendered view with real table grids, checkboxes, and inline images. Print (or Save as PDF) prints that rendered view. No file browser, no cloud, no sync, no tabs, no sidebars — inspired by Bear, iA Writer, and Medium.
 
-> **Status:** 1.0 candidate — feature-complete, release work remains. See [`docs/roadmap.md`](docs/roadmap.md) for what's done, the mini-roadmap, and the production-readiness checklist; [`docs/distribution.md`](docs/distribution.md) for App Store / direct-download shipping options; [`docs/known-issues.md`](docs/known-issues.md) for open non-blockers.
+> **Status:** 1.0 candidate — feature-complete and QA-validated (2026-09-07); release work remains and is tracked in Linear, project [JustMD 1.0 Release](https://linear.app/nuta-life/project/justmd-10-release-cc787e86c15d). See [`docs/roadmap.md`](docs/roadmap.md) for what's done, the mini-roadmap, and the production-readiness checklist; [`docs/distribution.md`](docs/distribution.md) for App Store / direct-download shipping options; [`docs/known-issues.md`](docs/known-issues.md) for open non-blockers.
 
 ## Requirements
 
