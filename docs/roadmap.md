@@ -45,7 +45,7 @@ remaining release work is tracked in Linear, project
 | [PRI-43](https://linear.app/nuta-life/issue/PRI-43) | Create the App Store Connect app record, bump the build number, re-archive, upload |
 | [PRI-44](https://linear.app/nuta-life/issue/PRI-44) | App Store metadata, screenshots, privacy labels (texts in [`appstore-metadata.md`](appstore-metadata.md)) |
 | [PRI-45](https://linear.app/nuta-life/issue/PRI-45) | Fix the GitHub Pages domain so support / privacy-policy URLs resolve |
-| [PRI-50](https://linear.app/nuta-life/issue/PRI-50) | Decide license and pricing |
+| [PRI-50](https://linear.app/nuta-life/issue/PRI-50) | ✅ License MIT, price Free |
 | [PRI-46](https://linear.app/nuta-life/issue/PRI-46) | Launch marketing: landing page, preview video, PR |
 | [PRI-47](https://linear.app/nuta-life/issue/PRI-47) | Submit for App Store review |
 | [PRI-48](https://linear.app/nuta-life/issue/PRI-48) | Developer ID build + notarization (optional direct-download channel) |
@@ -77,8 +77,8 @@ Tracked as [PRI-49](https://linear.app/nuta-life/issue/PRI-49) (backlog from [`k
 | Export compliance | ✅ `ITSAppUsesNonExemptEncryption = false` |
 | Signing | ✅ automatic, team `N2HCJ99WYH`, bundle `com.nuta.JustMD` |
 | Version | ✅ `MARKETING_VERSION = 1.0`, build 1 |
-| App Store metadata | ⬜ [PRI-44](https://linear.app/nuta-life/issue/PRI-44) |
-| Privacy policy + support URL | ⬜ [PRI-45](https://linear.app/nuta-life/issue/PRI-45) — Pages domain must resolve first |
-| License / pricing decision | ⬜ [PRI-50](https://linear.app/nuta-life/issue/PRI-50) |
+| App Store metadata | ✅ texts, categories, privacy labels, availability ([PRI-44](https://linear.app/nuta-life/issue/PRI-44)); screenshots/preview in [PRI-51](https://linear.app/nuta-life/issue/PRI-51) |
+| Privacy policy + support URL | ✅ https://justmd.nuta.life/ ([PRI-45](https://linear.app/nuta-life/issue/PRI-45)) |
+| License / pricing decision | ✅ MIT, free on the App Store ([PRI-50](https://linear.app/nuta-life/issue/PRI-50)) |
 | Manual QA pass | ✅ 2026-09-07, all findings fixed or documented |
 | Known non-blockers | see [`known-issues.md`](known-issues.md) — none block 1.0 |

@@ -56,4 +56,4 @@ Run: `xcodebuild ... -only-testing:JustMDTests test`.
 
 ## License
 
-TBD.
+MIT, see [LICENSE](LICENSE). The App Store build is free.
