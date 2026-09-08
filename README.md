@@ -25,7 +25,7 @@ xcodebuild -project JustMD/JustMD.xcodeproj -scheme JustMD -destination 'platfor
 
 ## Continuous integration
 
-Xcode Cloud builds every push to `master` (workflow **Release**: tests, then a Mac App Store archive). The shared scheme lives in `JustMD/JustMD.xcodeproj/xcshareddata/xcschemes/`. See [`docs/distribution.md`](docs/distribution.md).
+Xcode Cloud builds every push to `master` and `release/*` (workflow **Release**: tests, then a Mac App Store archive; docs-only changes are skipped). GitHub Actions attach each build to its App Store version, and a `vX.Y` tag submits that version for review. The shared scheme lives in `JustMD/JustMD.xcodeproj/xcshareddata/xcschemes/`. See [`docs/distribution.md`](docs/distribution.md).
 
 ## Architecture
 

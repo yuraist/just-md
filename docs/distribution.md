@@ -1,5 +1,30 @@
 # Distribution
 
+## Release pipeline (from 2026-09-08)
+
+- **Version** = `MARKETING_VERSION` in the pbxproj (`scripts/bump-version.sh X.Y`).
+  Build numbers come from Xcode Cloud.
+- **Xcode Cloud "Release"** builds every push to `master` and `release/*`
+  (tests + App Store archive); changes only under `docs/`, `marketing/`,
+  `.github/` or `*.md` are ignored.
+- **GitHub Action "Attach build"** (`.github/workflows/asc-attach.yml`) runs on
+  those pushes and hourly: waits for the Xcode Cloud run, then attaches the
+  newest processed build with the current version string to the App Store
+  version of that string, creating the version when ASC allows it (ASC refuses
+  to create X.Y+1 while X.Y is Waiting for Review, so the hourly run picks it
+  up after the review finishes).
+- **Tag `vX.Y` or `vX.Y-<suffix>`** = submit for review
+  (`.github/workflows/asc-submit.yml`): attaches that commit's build to version
+  X.Y, cancels a pending submission of X.Y if there is one, submits the version
+  together with every in-app purchase in READY_TO_SUBMIT, then bumps `master`
+  to X.(Y+1) when master was still at X.Y.
+- **Fix for a version in review:** `git checkout -b release/1.0 v1.0`, commit,
+  push (build attaches to 1.0), then tag `v1.0-r2` to resubmit.
+- Credentials: GitHub secrets `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_PRIVATE_KEY`
+  (same key `3PCCY7B92H`). Everything runs from `scripts/asc-release.py`,
+  which also works locally with `ASC_PRIVATE_KEY_PATH`.
+- The Developer ID DMG stays manual: `scripts/release-devid.sh`.
+
 ## 1.1 (in progress, 2026-09-08)
 
 Adds the Support window: newsletter signup (Supabase project **Nuta Apps**,

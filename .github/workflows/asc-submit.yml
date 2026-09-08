@@ -1,0 +1,51 @@
+name: Submit version for review
+
+# Tag vX.Y or vX.Y-<suffix> on any branch: attach this commit's Xcode Cloud
+# build to App Store version X.Y (cancelling a pending submission of the same
+# version first), submit it with every ready in-app purchase, then bump
+# master to the next minor version so later builds go to a new version.
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+', 'v[0-9]+.[0-9]+-*']
+
+concurrency:
+  group: asc-submit
+  cancel-in-progress: false
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Version from tag
+        id: v
+        run: |
+          v="${GITHUB_REF_NAME#v}"; v="${v%%-*}"
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - name: Write ASC key
+        run: echo "${{ secrets.ASC_PRIVATE_KEY }}" > "$RUNNER_TEMP/AuthKey.p8"
+      - name: Submit
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY_PATH: ${{ runner.temp }}/AuthKey.p8
+        run: python3 scripts/asc-release.py submit --version "${{ steps.v.outputs.version }}" --commit "$GITHUB_SHA"
+      - name: Bump master to the next minor version
+        run: |
+          git fetch origin master
+          git checkout -B master origin/master
+          current=$(grep -om1 'MARKETING_VERSION = [0-9.]*' JustMD/JustMD.xcodeproj/project.pbxproj | awk '{print $3}')
+          if [ "$current" != "${{ steps.v.outputs.version }}" ]; then
+            echo "master is at $current, not ${{ steps.v.outputs.version }}; no bump"; exit 0
+          fi
+          next="${current%.*}.$(( ${current##*.} + 1 ))"
+          sed -i "s/MARKETING_VERSION = [0-9.]*;/MARKETING_VERSION = $next;/" JustMD/JustMD.xcodeproj/project.pbxproj
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: start $next after submitting $current"
+          git push origin master
