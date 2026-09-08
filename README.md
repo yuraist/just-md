@@ -51,7 +51,7 @@ Product scope and shortcuts: [`docs/product.md`](docs/product.md).
 
 ## Tests
 
-153 tests as of the 1.1 Support work (2026-09-08) (see [`docs/known-issues.md`](docs/known-issues.md) for what it covered). Swift Testing (`@Test`, `@Suite`, `#expect`).
+155 tests as of the 1.1 Support work (2026-09-08) (see [`docs/known-issues.md`](docs/known-issues.md) for what it covered). Swift Testing (`@Test`, `@Suite`, `#expect`).
 
 Run: `xcodebuild ... -parallel-testing-enabled NO -only-testing:JustMDTests test` (parallel test hosts deadlock xcodebuild for an app-hosted bundle).
 

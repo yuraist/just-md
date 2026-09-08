@@ -16,6 +16,7 @@ struct SupportView: View {
                     .font(.system(size: 28, weight: .light, design: .serif))
                 Text("JustMD is free and made by one person. Here are two ways to help.")
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             newsletterSection
             #if !DIRECT_DISTRIBUTION
@@ -39,6 +40,7 @@ struct SupportView: View {
             Text("Occasional emails about new versions. No spam, unsubscribe anytime.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             if newsletter.state == .subscribed {
                 Label("You're on the list: \(newsletter.email)", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.secondary)
@@ -68,6 +70,7 @@ struct SupportView: View {
             Text("A small thank-you that keeps the editor going. Buy as many as you like.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 12) {
                 Button {
                     Task { await coffee.buy() }
