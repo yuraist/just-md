@@ -5,10 +5,13 @@
 Adds the Support window: newsletter signup (Supabase project **Nuta Apps**,
 `txeisrdkgcloqjiqexnw`, table `newsletter_subscribers`, anon insert-only RLS)
 and the consumable IAP **Buy me a coffee** (`com.nuta.JustMD.coffee`, ASC id
-`6809831247`, $2.99 USA base price, en-US localization). The IAP is in
-MISSING_METADATA until a screenshot + review note are attached in ASC; it must
-be submitted together with version 1.1. Sandbox now has outgoing network
-connections enabled. `scripts/release-devid.sh` builds 1.1 (build 6) with
+`6809831247`, $2.99 USA base price, en-US localization, review note and
+review screenshot `marketing/screenshots/iap-coffee-review-1280x800.png`
+attached, available in all territories). It must be submitted together with
+version 1.1: when creating the 1.1 version in ASC, add the IAP to the
+submission. Sandbox now has outgoing network
+connections enabled. Tests: `-parallel-testing-enabled NO` is required (see
+README). `scripts/release-devid.sh` builds 1.1 (build 6) with
 `DIRECT_DISTRIBUTION`, which compiles the purchase out of the DMG.
 
 Follow-ups before submitting 1.1: ASC privacy labels (Contact Info → Email,
