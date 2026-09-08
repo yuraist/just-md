@@ -83,3 +83,22 @@ Then `swift capture/scale-video.swift out.mov preview/preview-1.mp4`
 (1920×1080, 30 fps), `swift capture/frames.swift preview/preview-1.mp4 <dir> 11`
 for the poster, and
 `scripts/asc-upload-preview.py <jwt> <localization id> DESKTOP preview/preview-1.mp4 00:00:11:00`.
+
+## Promo video (`promo/`)
+
+A 39 s promo for the site and social posts, 1920×1080, built with
+[Remotion](https://www.remotion.dev): title card, six scenes of the real app
+(recorded window clips with a caption and a slow push-in), end card with
+the site address. Not for App Store Connect, whose previews allow no
+marketing cards.
+
+- Source clips: `capture/record-clips.sh <dir> <scene>` records one scene at
+  a time (`typing checkboxes readmode themes print`) as the window's screen
+  rectangle; `capture/scale-video.swift <in> <out> 2480 1440` normalises them
+  to 30 fps mp4 into `promo/public/clips/`. The `images` scene is a still
+  (`screencapture -l`): `screencapture -v` hangs on that Read-mode window.
+  Keyboard layout must be US while typing (`capture/layout.swift`).
+- Composition: `promo/src/Promo.tsx` (scenes, captions, timings).
+- Preview: `cd promo && npm i && npm run dev`. Render:
+  `npx remotion render JustMDPromo out/justmd-promo.mp4` (the `out/` folder
+  is not committed).
