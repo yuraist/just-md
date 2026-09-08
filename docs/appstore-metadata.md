@@ -58,9 +58,23 @@ inactive lines; click a task checkbox to toggle it; ⇧⌘E switches Read mode.
 
 ## Screenshots and preview
 
-Production brief: Linear PRI-51. Current uploads are the June renders from
-`marketing/screenshots/` (2880×1800, `AppStoreScreenshots` test suite). Upload
-with `scripts/asc-upload-screenshot.py`.
+Uploaded 2026-09-07 (Linear PRI-51); sources and the capture procedure are in
+`marketing/README.md`. Four `APP_DESKTOP` screenshots, 2880×1800, real
+captures of the app on a flat background, one caption each:
+
+| File | Caption |
+|------|---------|
+| `marketing/screenshots/appstore-1-editor.png` | Syntax appears only on the line you edit. |
+| `marketing/screenshots/appstore-2-read.png` | Reading mode, one shortcut away. |
+| `marketing/screenshots/appstore-3-tasks.png` | Checkboxes you click. Themes you can share. |
+| `marketing/screenshots/appstore-4-print.png` | Print, or save as PDF. |
+
+One `DESKTOP` preview, `marketing/preview/preview-1.mp4` (1920×1080, H.264,
+30 fps, 30 s, silent with an empty stereo track, which ASC requires), poster
+frame at 00:00:11:00 (`marketing/preview/poster.png`).
+
+Upload: `scripts/asc-upload-screenshot.py` and `scripts/asc-upload-preview.py`
+(JWT from `scripts/asc-jwt.py`; localization id `024ce06a-ddd3-44ff-91ee-fab52e498947`).
 
 ## Writing rules for this listing
 

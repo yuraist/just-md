@@ -36,6 +36,16 @@ settings were checked live; the regressions found are pinned by
 - **New** — File → Print… (and Save as PDF via the print dialog) prints the
   rendered document; Read mode offers "Allow access to folder…" so images
   next to a document can load under the sandbox.
+- **Found while shooting the App Store assets (2026-09-07)** — printing was
+  refused in the sandboxed build ("This application does not support
+  printing"): the `com.apple.security.print` entitlement was off
+  (`ENABLE_RESOURCE_ACCESS_PRINTING`), and File → Print… now sends
+  `printDocument:`. Read mode: images inside table cells never loaded (no
+  base URL) and are now scaled to the column; an image-only paragraph no
+  longer gets the line-height multiple (blank band above pictures); the
+  folder grant is asked for the document's folder, so an image in a
+  subfolder loads on later launches too. Covered by `ReadRendererTests`,
+  `FolderAccessTests`, `PrintingTests`.
 
 ## Resolved in the 2026-06 rework
 

@@ -249,6 +249,18 @@ struct FolderAccessTests {
         #expect(!remote.string.contains("Allow access to folder"))
     }
 
+    @Test("an image in a subfolder asks for the document's folder, not the subfolder")
+    func grantLinkTargetsDocumentFolder() throws {
+        let base = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        let out = MarkdownReadRenderer().render("![pic](doc/missing.png)\n", context: makeContext(), baseURL: base)
+        var grants: [URL] = []
+        out.enumerateAttribute(.link, in: NSRange(location: 0, length: out.length)) { value, _, _ in
+            if let url = value as? URL, url.scheme == FolderAccess.grantScheme { grants.append(url) }
+        }
+        let folder = try #require(FolderAccess.folder(fromGrantLink: grants.first))
+        #expect(folder.standardizedFileURL.path == base.standardizedFileURL.path)
+    }
+
     @Test("a stored grant makes the folder readable and a sibling image render")
     func storedGrantLoadsSiblingImage() throws {
         let dir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("grant-\(UUID().uuidString)", isDirectory: true)

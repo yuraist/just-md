@@ -108,6 +108,52 @@ struct ReadRendererTests {
         #expect(!out.string.contains("~~"))
     }
 
+    /// A 1000×100 PNG next to a temporary "document", so relative image paths
+    /// resolve the way they do for a real file on disk.
+    private func makeImageFixture() throws -> URL {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("read-renderer-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let rep = try #require(NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: 1000, pixelsHigh: 100, bitsPerSample: 8,
+            samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+        let png = try #require(rep.representation(using: .png, properties: [:]))
+        try png.write(to: dir.appendingPathComponent("pic.png"))
+        return dir.appendingPathComponent("doc.md")
+    }
+
+    @Test("local image inside a table cell loads as an attachment")
+    func tableCellImage() throws {
+        let doc = try makeImageFixture()
+        let out = MarkdownReadRenderer().render(
+            "| A | B |\n|---|---|\n| ![](pic.png) | text |\n",
+            context: makeContext(), baseURL: doc)
+        #expect(out.containsAttachments(in: NSRange(location: 0, length: out.length)))
+        #expect(!out.string.contains("pic.png"))
+        var widths: [CGFloat] = []
+        out.enumerateAttribute(.attachment, in: NSRange(location: 0, length: out.length)) { value, _, _ in
+            if let a = value as? NSTextAttachment { widths.append(a.bounds.width) }
+        }
+        // Two columns: the picture is shrunk to fit its cell, not the page.
+        #expect(widths.count == 1)
+        #expect(widths.first.map { $0 > 0 && $0 <= 620 / 2 } == true)
+    }
+
+    @Test("image-only paragraph keeps its natural line height")
+    func imageParagraphLineHeight() throws {
+        let doc = try makeImageFixture()
+        let out = MarkdownReadRenderer().render(
+            "Before\n\n![](pic.png)\n\nAfter\n",
+            context: makeContext(), baseURL: doc)
+        let range = (out.string as NSString).range(of: "\u{FFFC}")
+        #expect(range.location != NSNotFound)
+        let style = try #require(out.attribute(.paragraphStyle, at: range.location, effectiveRange: nil) as? NSParagraphStyle)
+        #expect(style.lineHeightMultiple == 1)
+        let before = try #require(out.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle)
+        #expect(before.lineHeightMultiple > 1)
+    }
+
     @Test("unloadable image falls back to dimmed alt text")
     func imagePlaceholder() {
         let out = render("![logo](missing.png)\n")

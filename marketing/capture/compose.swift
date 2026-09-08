@@ -12,7 +12,10 @@
 //       separate windows: pass their ids too.
 //
 // Options: --bg RRGGBB (default EBEBED), --fg RRGGBB (default 1D1D1F),
-//          --font-size px (default 84), --top px (default 132).
+//          --font-size px (default 84), --top px (default 132),
+//          --screen: grab each window's screen rectangle instead of the
+//          window layer alone (so a sheet with a glass backdrop is shown the
+//          way it appears), masked to the window's rounded shape.
 import AppKit
 
 struct Options {
@@ -24,6 +27,7 @@ struct Options {
     var top: CGFloat = 132
     var windows: [CGWindowID] = []
     var list = false
+    var screen = false
 }
 
 func fail(_ message: String) -> Never {
@@ -41,6 +45,7 @@ func parse() -> Options {
     while let a = it.next() {
         switch a {
         case "--list": o.list = true
+        case "--screen": o.screen = true
         case "--out": o.out = value(a)
         case "--caption": o.caption = value(a)
         case "--bg": o.bg = value(a)
@@ -88,16 +93,44 @@ func justMDWindows() -> [WindowInfo] {
     }
 }
 
-func capture(_ id: CGWindowID) -> NSBitmapImageRep {
-    let path = NSTemporaryDirectory() + "compose-\(id).png"
+func screencapture(_ arguments: [String], name: String) -> NSBitmapImageRep {
+    let path = NSTemporaryDirectory() + "compose-\(name).png"
     let p = Process()
     p.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
-    p.arguments = ["-l\(id)", "-o", "-x", path]
+    p.arguments = arguments + ["-x", path]
     try? p.run()
     p.waitUntilExit()
     guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
-          let rep = NSBitmapImageRep(data: data) else { fail("could not capture window \(id)") }
+          let rep = NSBitmapImageRep(data: data) else { fail("could not capture \(name)") }
     return rep
+}
+
+/// The window layer alone, shadow-free, transparent outside its rounded shape.
+func capture(_ id: CGWindowID) -> NSBitmapImageRep {
+    screencapture(["-l\(id)", "-o"], name: "window-\(id)")
+}
+
+/// What the screen shows inside the window's rectangle (sheets, popovers and
+/// their backdrops included), clipped to the window layer's alpha so the
+/// corners stay rounded and the wallpaper stays out.
+func captureScreen(_ w: WindowInfo) -> NSBitmapImageRep {
+    let mask = capture(w.id)
+    let b = w.bounds
+    let region = screencapture(["-R\(Int(b.minX)),\(Int(b.minY)),\(Int(b.width)),\(Int(b.height))"], name: "screen-\(w.id)")
+    guard let out = NSBitmapImageRep(
+        bitmapDataPlanes: nil, pixelsWide: mask.pixelsWide, pixelsHigh: mask.pixelsHigh,
+        bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+        colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
+    ) else { fail("no mask canvas") }
+    out.size = NSSize(width: mask.pixelsWide, height: mask.pixelsHigh)
+    NSGraphicsContext.saveGraphicsState()
+    NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: out)
+    let full = NSRect(x: 0, y: 0, width: mask.pixelsWide, height: mask.pixelsHigh)
+    mask.draw(in: full, from: .zero, operation: .copy, fraction: 1, respectFlipped: false, hints: nil)
+    region.draw(in: full, from: .zero, operation: .sourceIn, fraction: 1, respectFlipped: false,
+                hints: [.interpolation: NSImageInterpolation.high.rawValue])
+    NSGraphicsContext.restoreGraphicsState()
+    return out
 }
 
 let opts = parse()
@@ -159,7 +192,7 @@ let groupX = (CGFloat(canvasW) - drawnW) / 2
 let groupBottom = areaBottom + (areaTop - areaBottom - drawnH) / 2
 
 for w in ordered {
-    let rep = capture(w.id)
+    let rep = opts.screen ? captureScreen(w) : capture(w.id)
     let x = groupX + (w.bounds.minX - union.minX) * scale * fit
     let y = groupBottom + (union.maxY - w.bounds.maxY) * scale * fit
     let dest = NSRect(x: x, y: y, width: w.bounds.width * scale * fit, height: w.bounds.height * scale * fit)

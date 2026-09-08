@@ -73,7 +73,12 @@ final class MarkdownReadRenderer {
         case CMARK_NODE_PARAGRAPH:
             let text = inlineText(of: node, context: context, baseURL: baseURL,
                                   state: InlineState(font: context.baseFont))
-            append(text, style: blockStyle(), to: out)
+            let style = blockStyle()
+            // A paragraph that is only an image: the line-height multiple
+            // would scale the attachment's line and leave a blank band above
+            // the picture, so images sit at their natural height.
+            if isImageOnly(text) { style.lineHeightMultiple = 1 }
+            append(text, style: style, to: out)
 
         case CMARK_NODE_CODE_BLOCK:
             appendCodeBlock(node, to: out, context: context)
@@ -128,7 +133,7 @@ final class MarkdownReadRenderer {
 
         default:
             if let typeCStr = cmark_node_get_type_string(node), String(cString: typeCStr) == "table" {
-                appendTable(node, to: out, context: context)
+                appendTable(node, to: out, context: context, baseURL: baseURL)
             }
         }
     }
@@ -269,7 +274,8 @@ final class MarkdownReadRenderer {
     private func appendTable(
         _ node: UnsafeMutablePointer<cmark_node>,
         to out: NSMutableAttributedString,
-        context: HighlightContext
+        context: HighlightContext,
+        baseURL: URL?
     ) {
         let columns = Int(cmark_gfm_extensions_get_table_columns(node))
         guard columns > 0 else { return }
@@ -311,8 +317,12 @@ final class MarkdownReadRenderer {
                 }
 
                 let cellFont = isHeader ? font(context.baseFont, addingTraits: .bold) : context.baseFont
-                let content = inlineText(of: cell, context: context, baseURL: nil,
-                                         state: InlineState(font: cellFont))
+                // Columns share the table width equally, so an image in a
+                // cell gets a proportional slice of the usual image width.
+                var cellState = InlineState(font: cellFont)
+                cellState.imageMaxWidth = max(60, 620 / CGFloat(columns) - 12)
+                let content = inlineText(of: cell, context: context, baseURL: baseURL,
+                                         state: cellState)
                 let cellText = NSMutableAttributedString(attributedString: content)
                 if cellText.length == 0 {
                     cellText.append(NSAttributedString(
@@ -354,6 +364,8 @@ final class MarkdownReadRenderer {
         var strike = false
         var code = false
         var link: URL?
+        /// Widest an inline image may be drawn; table cells shrink it.
+        var imageMaxWidth: CGFloat = 620
     }
 
     private func inlineText(
@@ -460,7 +472,7 @@ final class MarkdownReadRenderer {
            let nsImage = NSImage(contentsOf: url) {
             let attachment = NSTextAttachment()
             attachment.image = nsImage
-            let maxWidth: CGFloat = 620
+            let maxWidth = state.imageMaxWidth
             let size = nsImage.size
             if size.width > maxWidth, size.width > 0 {
                 let scale = maxWidth / size.width
@@ -475,10 +487,14 @@ final class MarkdownReadRenderer {
         let label = alt.isEmpty ? urlString : alt
         let placeholder = NSMutableAttributedString(attributedString: text("🖼 \(label)", state: s, context: context))
         // A local image next to a saved document is most likely readable
-        // once the user allows its folder — offer that inline.
-        if !urlString.isEmpty, baseURL != nil,
+        // once the user allows the document's folder — offer that inline.
+        // The grant covers the folder and everything below it, so an image
+        // in a subfolder (`doc/pic.png`) is served by the same bookmark the
+        // view controller re-activates for the document on later launches.
+        if !urlString.isEmpty, let baseURL,
            let url = URL(string: urlString, relativeTo: baseURL), url.isFileURL,
-           let grant = FolderAccess.grantLink(for: url.deletingLastPathComponent()) {
+           let grant = FolderAccess.grantLink(
+               for: baseURL.hasDirectoryPath ? baseURL : baseURL.deletingLastPathComponent()) {
             var link = state
             link.link = grant
             placeholder.append(text("  ", state: s, context: context))
@@ -488,6 +504,16 @@ final class MarkdownReadRenderer {
     }
 
     // MARK: - Helpers
+
+    /// True when `text` holds at least one attachment and nothing else but
+    /// attachment characters and whitespace.
+    private func isImageOnly(_ text: NSAttributedString) -> Bool {
+        guard text.containsAttachments(in: NSRange(location: 0, length: text.length)) else { return false }
+        let stripped = text.string
+            .replacingOccurrences(of: "\u{FFFC}", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return stripped.isEmpty
+    }
 
     private func blockStyle() -> NSMutableParagraphStyle {
         let style = NSMutableParagraphStyle()
