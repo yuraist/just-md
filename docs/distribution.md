@@ -1,6 +1,12 @@
 # Distribution
 
-## Release state (2026-09-07)
+## Release state (2026-09-08)
+
+**1.0 submitted for App Store review on 2026-09-08** with build 5 (Xcode
+Cloud run 5, commit `8d6b548`: printing entitlement, Read-mode image fixes,
+final screenshots and preview). Review submission
+`f60c4544-d687-44e6-8a08-28bbc2a80374`, version state WAITING_FOR_REVIEW.
+Watch it with the ASC MCP (`get_review_status`). Earlier notes below.
 
 Open steps are tracked in Linear: project
 [JustMD 1.0 Release](https://linear.app/nuta-life/project/justmd-10-release-cc787e86c15d)
@@ -26,7 +32,9 @@ Done by automation:
   or `altool` upload is needed for App Store builds; pick the build in ASC.
   Manual builds: Xcode → Integrate → Xcode Cloud → Manage Workflows, or
   `POST /v1/ciBuildRuns` with the workflow id (`scripts/asc-jwt.py` for the JWT).
-  Build 2 (run #2, 2026-09-07) is attached to version 1.0; run #1 failed only
+  Build 5 (run #5, 2026-09-08) is attached to version 1.0 (builds 2–4 came
+  from earlier pushes the same day; every push to master costs a build
+  number, so batch docs changes). Run #1 failed only
   because its number collided with the June build 1.
 
 Blocked on owner-only steps:
