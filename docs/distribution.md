@@ -8,6 +8,16 @@ final screenshots and preview). Review submission
 `f60c4544-d687-44e6-8a08-28bbc2a80374`, version state WAITING_FOR_REVIEW.
 Watch it with the ASC MCP (`get_review_status`). Earlier notes below.
 
+**Direct download shipped 2026-09-08:** the same 1.0 (build 5) source,
+exported with Developer ID, notarized and stapled, is on GitHub Releases as
+[`JustMD-1.0.dmg`](https://github.com/yuraist/justmd/releases/tag/v1.0)
+(universal, SHA-256 `74895e4c…b02943`). The landing page's direct-download
+link points at `releases/latest/download/JustMD-1.0.dmg`. Reproduce with
+`scripts/release-devid.sh` (archive → export → notarytool with the ASC API
+key from `~/Developer/.secrets/.env` → staple → DMG → notarize + staple the
+DMG); it writes to `build/devid/`. The Developer ID Application certificate
+now exists in the login keychain, so PRI-48 is unblocked.
+
 Open steps are tracked in Linear: project
 [JustMD 1.0 Release](https://linear.app/nuta-life/project/justmd-10-release-cc787e86c15d)
 (Prism App team). Issue numbers below refer to it.
@@ -45,7 +55,7 @@ Blocked on owner-only steps:
    `xcrun altool --upload-app -f build/export-appstore/JustMD.pkg -t macos
    --apiKey 3PCCY7B92H --apiIssuer <issuer>` (verified working up to the
    missing-record error).
-2. **Developer ID certificate** ([PRI-48](https://linear.app/nuta-life/issue/PRI-48)) — cloud signing returned a permission error
+2. ~~**Developer ID certificate**~~ ([PRI-48](https://linear.app/nuta-life/issue/PRI-48)) — done 2026-09-08, see above. Original notes: cloud signing returned a permission error
    (only the Account Holder may create Developer ID certs). Xcode →
    Settings → Accounts → Manage Certificates → ＋ → Developer ID Application;
    then `xcodebuild -exportArchive … -exportOptionsPlist

@@ -48,7 +48,7 @@ remaining release work is tracked in Linear, project
 | [PRI-50](https://linear.app/nuta-life/issue/PRI-50) | ✅ License MIT, price Free |
 | [PRI-46](https://linear.app/nuta-life/issue/PRI-46) | Launch marketing: landing page, preview video, PR |
 | [PRI-47](https://linear.app/nuta-life/issue/PRI-47) | Submit for App Store review |
-| [PRI-48](https://linear.app/nuta-life/issue/PRI-48) | Developer ID build + notarization (optional direct-download channel) |
+| [PRI-48](https://linear.app/nuta-life/issue/PRI-48) | ✅ Developer ID build + notarization — [v1.0 DMG on GitHub Releases](https://github.com/yuraist/justmd/releases/tag/v1.0) (`scripts/release-devid.sh`) |
 
 ### v1.1 — polish
 
