@@ -1,5 +1,20 @@
 # Distribution
 
+## 1.1 (in progress, 2026-09-08)
+
+Adds the Support window: newsletter signup (Supabase project **Nuta Apps**,
+`txeisrdkgcloqjiqexnw`, table `newsletter_subscribers`, anon insert-only RLS)
+and the consumable IAP **Buy me a coffee** (`com.nuta.JustMD.coffee`, ASC id
+`6809831247`, $2.99 USA base price, en-US localization). The IAP is in
+MISSING_METADATA until a screenshot + review note are attached in ASC; it must
+be submitted together with version 1.1. Sandbox now has outgoing network
+connections enabled. `scripts/release-devid.sh` builds 1.1 (build 6) with
+`DIRECT_DISTRIBUTION`, which compiles the purchase out of the DMG.
+
+Follow-ups before submitting 1.1: ASC privacy labels (Contact Info → Email,
+developer marketing) and a paragraph about email collection on
+`https://justmd.nuta.life/privacy` (repo `yuraist/justmd`).
+
 ## Release state (2026-09-08)
 
 **1.0 submitted for App Store review on 2026-09-08** with build 5 (Xcode

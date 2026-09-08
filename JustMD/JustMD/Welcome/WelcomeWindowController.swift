@@ -31,7 +31,8 @@ final class WelcomeWindowController: NSWindowController {
         let view = WelcomeView(
             onNew: { [weak self] in self?.handleNew() },
             onOpen: { [weak self] in self?.handleOpen() },
-            onOpenURL: { [weak self] url in self?.handleOpenURL(url) }
+            onOpenURL: { [weak self] url in self?.handleOpenURL(url) },
+            onSupport: { SupportWindowController.shared.showWindow(nil) }
         )
         window.contentView = NSHostingView(rootView: view)
     }

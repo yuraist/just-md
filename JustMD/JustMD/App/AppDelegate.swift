@@ -16,6 +16,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         installFormatMenu()
         installViewMenu()
         installShowWelcomeMenuItem()
+        installSupportMenuItem()
         wirePreferencesMenuItem()
         // The Welcome window is shown through applicationOpenUntitledFile(_:),
         // which AppKit invokes only when the launch (or a Dock click) has
@@ -277,6 +278,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func showWelcome(_ sender: Any?) {
         WelcomeWindowController.shared.showWindow(sender)
+    }
+
+    private func installSupportMenuItem() {
+        guard let mainMenu = NSApp.mainMenu else { return }
+        guard let helpMenu = mainMenu.items.first(where: { $0.title == "Help" })?.submenu else { return }
+        if helpMenu.items.contains(where: { $0.title == "Support JustMD…" }) { return }
+        let item = NSMenuItem(title: "Support JustMD…",
+                              action: #selector(showSupport(_:)),
+                              keyEquivalent: "")
+        item.target = self
+        if !helpMenu.items.isEmpty { helpMenu.addItem(NSMenuItem.separator()) }
+        helpMenu.addItem(item)
+    }
+
+    @objc func showSupport(_ sender: Any?) {
+        SupportWindowController.shared.showWindow(sender)
     }
 
     @objc func showPreferences(_ sender: Any?) {

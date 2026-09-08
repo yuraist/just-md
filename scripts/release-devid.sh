@@ -5,13 +5,14 @@ set -a; source ~/Developer/.secrets/.env; set +a
 KEY=~/.appstoreconnect/private_keys/AuthKey_3PCCY7B92H.p8
 KEY_ID=3PCCY7B92H
 ISSUER="${ASC_ISSUER_ID:?ASC_ISSUER_ID missing}"
-VER=1.0; BUILD=5
+VER=1.1; BUILD=6
 OUT=build/devid; rm -rf "$OUT"; mkdir -p "$OUT"
 
 echo "== archive"
 xcodebuild -project JustMD/JustMD.xcodeproj -scheme JustMD -configuration Release archive \
   -archivePath "$OUT/JustMD.xcarchive" -destination 'generic/platform=macOS' \
-  CURRENT_PROJECT_VERSION=$BUILD -quiet
+  CURRENT_PROJECT_VERSION=$BUILD \
+  SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) DIRECT_DISTRIBUTION' -quiet
 echo "== export (developer-id)"
 xcodebuild -exportArchive -archivePath "$OUT/JustMD.xcarchive" \
   -exportOptionsPlist scripts/ExportOptionsDevID.plist -exportPath "$OUT/export" -quiet

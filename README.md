@@ -20,7 +20,7 @@ Or from CLI:
 
 ```bash
 xcodebuild -project JustMD/JustMD.xcodeproj -scheme JustMD -destination 'platform=macOS' build
-xcodebuild -project JustMD/JustMD.xcodeproj -scheme JustMD -destination 'platform=macOS' -only-testing:JustMDTests test
+xcodebuild -project JustMD/JustMD.xcodeproj -scheme JustMD -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:JustMDTests test
 ```
 
 ## Continuous integration
@@ -40,6 +40,7 @@ AppKit document-based app (`NSDocument` per file) with SwiftUI for the Welcome a
 | `Theme/` | `Theme` / `Palette` Codable models; builtin + user presets; `.justmd-theme` JSON export/import. |
 | `Welcome/` | SwiftUI Welcome window: New / Open / Drop / Recent. |
 | `Preferences/` | SwiftUI Preferences + Manage Themes (colorpickers). Persistence via `UserDefaults`. |
+| `Support/` | "Support JustMD" window (Help menu, Welcome link): newsletter signup posted to Supabase, and a repeatable "Buy me a coffee" StoreKit 2 consumable. The purchase code is compiled out with `DIRECT_DISTRIBUTION` (set by `scripts/release-devid.sh`), so the DMG build ships only the newsletter form. |
 
 Product scope and shortcuts: [`docs/product.md`](docs/product.md).
 
@@ -50,10 +51,10 @@ Product scope and shortcuts: [`docs/product.md`](docs/product.md).
 
 ## Tests
 
-137 tests as of the 2026-09 release QA pass (see [`docs/known-issues.md`](docs/known-issues.md) for what it covered). Swift Testing (`@Test`, `@Suite`, `#expect`).
+153 tests as of the 1.1 Support work (2026-09-08) (see [`docs/known-issues.md`](docs/known-issues.md) for what it covered). Swift Testing (`@Test`, `@Suite`, `#expect`).
 
-Run: `xcodebuild ... -only-testing:JustMDTests test`.
+Run: `xcodebuild ... -parallel-testing-enabled NO -only-testing:JustMDTests test` (parallel test hosts deadlock xcodebuild for an app-hosted bundle).
 
 ## License
 
-MIT, see [LICENSE](LICENSE). The App Store build is free.
+MIT, see [LICENSE](LICENSE). The App Store build is free; it offers an optional, repeatable "Buy me a coffee" in-app purchase ($2.99) that the direct-download build does not.

@@ -14,6 +14,7 @@ struct WelcomeView: View {
     let onNew: () -> Void
     let onOpen: () -> Void
     let onOpenURL: (URL) -> Void
+    var onSupport: (() -> Void)? = nil
 
     @State private var recents: [URL] = []
     @State private var isDropTargeted: Bool = false
@@ -32,6 +33,13 @@ struct WelcomeView: View {
 
             if !recents.isEmpty {
                 recentsList
+            }
+
+            if let onSupport {
+                Button("Support JustMD", action: onSupport)
+                    .buttonStyle(.link)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(40)

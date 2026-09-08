@@ -1,0 +1,35 @@
+{
+  "identifier" : "JustMDStoreKit",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "JUSTMD_COFFEE",
+      "localizations" : [
+        {
+          "description" : "A small thank-you to the developer. Repeatable.",
+          "displayName" : "Buy me a coffee",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.nuta.JustMD.coffee",
+      "referenceName" : "Buy me a coffee",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6779422717",
+    "_developerTeamID" : "N2HCJ99WYH",
+    "_lastSynced" : 0
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

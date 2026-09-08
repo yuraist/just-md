@@ -52,6 +52,8 @@ remaining release work is tracked in Linear, project
 
 ### v1.1 — polish
 
+- ✅ Support window: newsletter signup (Supabase) + repeatable "Buy me a coffee" IAP (App Store build only). See `docs/superpowers/specs/2026-09-08-support-window-design.md`.
+
 Tracked as [PRI-49](https://linear.app/nuta-life/issue/PRI-49) (backlog from [`known-issues.md`](known-issues.md)).
 
 - Remote images in Read mode (async download + cache).
