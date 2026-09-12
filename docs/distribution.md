@@ -1,5 +1,59 @@
 # Distribution
 
+## Current status (verified 2026-09-12)
+
+App Store Connect reports version **1.0** as `READY_FOR_DISTRIBUTION`
+(`READY_FOR_SALE`, downloadable). The [official App Store page](https://apps.apple.com/app/id6779422717)
+is the primary download. `master` contains development work for 1.1.
+The dated 2026-09-08 release notes below describe the earlier submission.
+
+The release Actions currently fail because their ASC credential inputs are
+empty. Configure the repository secrets before relying on automated release
+attachment or submission; these workflows are not part of local builds.
+
+## Public repository protection
+
+GitHub Free supports branch protection on public repositories. This repository
+was still private at the 2026-09-12 check, and GitHub returned HTTP 403 for
+branch protection until the plan or visibility changes.
+
+After making the repository public, apply the reviewed settings from the
+repository root:
+
+```bash
+gh api --method PUT repos/yuraist/just-md/branches/master/protection \
+  --input .github/master-protection.json
+gh api repos/yuraist/just-md/branches/master/protection
+```
+
+These settings prohibit force-pushes and deletion of `master`, including for
+administrators, and require resolved conversations when merging pull requests.
+Normal pushes remain allowed so the existing release Action can bump the
+version. They do not require a second reviewer or passing release jobs.
+If PR-only merges are introduced later, first change the release version-bump
+step to open a PR instead of pushing directly to `master`.
+
+## Newsletter access (verified 2026-09-12)
+
+A read-only Management API audit confirmed that `newsletter_subscribers` has
+RLS enabled and one policy: `anon` can INSERT an email matching the policy's
+format check. There are no SELECT, UPDATE, or DELETE policies for `anon` or
+`authenticated`; neither role bypasses RLS. A unique index on `lower(email)`
+prevents duplicate addresses. The client contains a publishable key, not a
+service-role secret.
+
+Table grants are broader than needed: both roles also hold SELECT, UPDATE,
+DELETE, and TRUNCATE privileges. RLS blocks row reads and changes through the
+existing policies; it does not govern TRUNCATE, which is not a standard
+PostgREST table operation. The optional
+[`supabase-newsletter-permissions.sql`](../scripts/supabase-newsletter-permissions.sql)
+reduces these grants to anon INSERT only. It has been prepared but not applied
+to production. No subscriber data was read or changed during the audit.
+
+The table has no custom triggers or server-side rate limiter in its schema.
+This audit did not verify upstream rate limiting or email confirmation.
+Evaluate abuse protection before promoting the newsletter widely.
+
 ## Release pipeline (from 2026-09-08)
 
 - **Version** = `MARKETING_VERSION` in the pbxproj (`scripts/bump-version.sh X.Y`).

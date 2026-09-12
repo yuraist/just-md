@@ -1,9 +1,8 @@
 {
   "name": "promo",
   "version": "1.0.0",
-  "description": "My Remotion video",
-  "repository": {},
-  "license": "UNLICENSED",
+  "description": "Promotional video composition for JustMD",
+  "license": "MIT",
   "private": true,
   "dependencies": {
     "@remotion/cli": "4.0.522",

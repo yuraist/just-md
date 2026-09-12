@@ -12,7 +12,7 @@ DerivedData/
 # Swift Package Manager
 .build/
 .swiftpm/
-*.resolved
+# Keep Package.resolved tracked for reproducible app builds.
 
 # CocoaPods
 Pods/
@@ -26,6 +26,24 @@ build/
 *.ipa
 *.dSYM.zip
 *.dSYM
+*.xcarchive
+*.pkg
+*.dmg
+
+# Local credentials and signing material
+.env
+.env.*
+!.env.example
+*.p8
+*.p12
+*.pem
+*.key
+*.mobileprovision
+*.provisionprofile
+
+# Python caches
+__pycache__/
+*.py[cod]
 
 # macOS
 .DS_Store
@@ -43,4 +61,3 @@ fastlane/test_output
 timeline.xctimeline
 playground.xcworkspace
 .claude/
-JustMD/JustMD.xcodeproj/project.xcworkspace/xcuserdata

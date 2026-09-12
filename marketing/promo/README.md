@@ -1,54 +1,31 @@
-# Remotion video
+# JustMD promotional video
 
-<p align="center">
-  <a href="https://github.com/remotion-dev/logo">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://github.com/remotion-dev/logo/raw/main/animated-logo-banner-dark.apng">
-      <img alt="Animated Remotion Logo" src="https://github.com/remotion-dev/logo/raw/main/animated-logo-banner-light.gif">
-    </picture>
-  </a>
-</p>
-
-Welcome to your Remotion project!
+This standalone Remotion project composes recorded JustMD clips into a
+promotional video. It is used only for marketing; neither this project nor
+Remotion is compiled into or distributed inside the macOS app.
 
 ## Commands
 
-**Install Dependencies**
+Run from this directory:
 
-```console
-npm i
-```
-
-**Start Preview**
-
-```console
+```bash
+npm ci
 npm run dev
+npx remotion render JustMDPromo out/justmd-promo.mp4
 ```
 
-**Render video**
-
-```console
-npx remotion render
-```
-
-**Upgrade Remotion**
-
-```console
-npx remotion upgrade
-```
-
-## Docs
-
-Get started with Remotion by reading the [fundamentals page](https://www.remotion.dev/docs/the-fundamentals).
-
-## Help
-
-We provide help on our [Discord server](https://discord.gg/6VzzNDwUwV).
-
-## Issues
-
-Found an issue with Remotion? [File an issue here](https://github.com/remotion-dev/remotion/issues/new).
+The composition lives in `src/Promo.tsx`, with source clips in `public/clips/`.
+See [the capture instructions](../README.md) for recording new clips.
+Generated output in `out/` is ignored by Git.
 
 ## License
 
-Note that for some entities a company license is needed. [Read the terms here](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md).
+The original JustMD composition code is covered by the repository's
+[MIT License](../../LICENSE). The `private` package flag prevents accidental
+publication to npm; it does not restrict access to the source code.
+
+Remotion is a separate development dependency with its own
+[license terms](https://github.com/remotion-dev/remotion/blob/v4.0.522/LICENSE.md).
+Those terms apply when using Remotion to create videos, not when building
+or using the JustMD macOS application. Other npm dependencies retain their
+respective licenses.

@@ -1,8 +1,24 @@
 # JustMD
 
-A native macOS markdown editor. Open a `.md` file and the syntax disappears: markers hide on every line except the one you're editing (Bear-style), links show their text only, lists get real bullets, rules become hairlines. Flip to **Read mode** (⇧⌘E) for a fully rendered view with real table grids, checkboxes, and inline images. Print (or Save as PDF) prints that rendered view. No file browser, no cloud, no sync, no tabs, no sidebars — inspired by Bear, iA Writer, and Medium.
+A free, open-source Markdown editor for macOS. Open a `.md` file and focus on the text: Markdown markers hide on every line except the one you're editing. Links show their text, lists get real bullets, and horizontal rules become hairlines.
 
-> **Status:** 1.0 submitted for App Store review on 2026-09-08 (build 5); the release is tracked in Linear, project [JustMD 1.0 Release](https://linear.app/nuta-life/project/justmd-10-release-cc787e86c15d). See [`docs/roadmap.md`](docs/roadmap.md) for what's done, the mini-roadmap, and the production-readiness checklist; [`docs/distribution.md`](docs/distribution.md) for App Store / direct-download shipping options; [`docs/known-issues.md`](docs/known-issues.md) for open non-blockers.
+Switch to **Read mode** (⇧⌘E) for rendered tables, checkboxes, and local images. Print the rendered document or save it as a PDF. Your documents stay in ordinary files on your Mac; there is no account, document upload, or sync service.
+
+**[Download on the Mac App Store](https://apps.apple.com/app/id6779422717)** · [Website](https://justmd.nuta.life/) · [Report an issue](https://github.com/yuraist/just-md/issues)
+
+![JustMD editing a Markdown document](marketing/screenshots/appstore-1-editor.png)
+
+## Features
+
+- Native document windows with autosave, undo, and macOS file versions.
+- Markdown formatting shortcuts, clickable task lists, and code highlighting.
+- Edit and Read modes, printing, and PDF export.
+- Built-in themes and custom themes you can import and export.
+- Local images in Read mode, with explicit folder access under the macOS sandbox.
+
+**Release status:** version 1.0 is available on the App Store (verified September 12, 2026). The `master` branch contains work for 1.1, including an optional newsletter signup and a “Buy me a coffee” in-app purchase for the App Store build. Those additions are not part of the published 1.0 release.
+
+See [known issues](docs/known-issues.md) for current limitations, including remote images, large-document resizing, and table editing. Product scope and shortcuts are in [docs/product.md](docs/product.md).
 
 ## Requirements
 
@@ -13,19 +29,28 @@ A native macOS markdown editor. Open a `.md` file and the syntax disappears: mar
 
 ```bash
 open JustMD/JustMD.xcodeproj
-# ⌘R to run, ⌘U to test
 ```
 
-Or from CLI:
+For local development, select **Sign to Run Locally** in Signing & Capabilities for the app and test targets, then use ⌘R to run or ⌘U to test. You do not need the maintainer's Apple Developer account or App Store Connect credentials.
+
+Or build and test from the repository root with local ad-hoc signing:
 
 ```bash
-xcodebuild -project JustMD/JustMD.xcodeproj -scheme JustMD -destination 'platform=macOS' build
-xcodebuild -project JustMD/JustMD.xcodeproj -scheme JustMD -destination 'platform=macOS' -parallel-testing-enabled NO -only-testing:JustMDTests test
+xcodebuild -project JustMD/JustMD.xcodeproj -scheme JustMD \
+  -destination 'platform=macOS' -derivedDataPath build/DerivedData \
+  DEVELOPMENT_TEAM= CODE_SIGN_IDENTITY=- build
+
+xcodebuild -project JustMD/JustMD.xcodeproj -scheme JustMD \
+  -destination 'platform=macOS' -derivedDataPath build/DerivedData \
+  -parallel-testing-enabled NO -only-testing:JustMDTests \
+  DEVELOPMENT_TEAM= CODE_SIGN_IDENTITY=- test
 ```
+
+The app is built at `build/DerivedData/Build/Products/Debug/JustMD.app`. Swift Package Manager resolves the dependencies pinned in `Package.resolved`. The shared Debug scheme uses a local StoreKit configuration for test purchases. The optional newsletter form connects to the project's live subscription service; unit tests use stubs and do not subscribe real addresses.
 
 ## Continuous integration
 
-Xcode Cloud builds every push to `master` and `release/*` (workflow **Release**: tests, then a Mac App Store archive; docs-only changes are skipped). GitHub Actions attach each build to its App Store version, and a `vX.Y` tag submits that version for review. The shared scheme lives in `JustMD/JustMD.xcodeproj/xcshareddata/xcschemes/`. See [`docs/distribution.md`](docs/distribution.md).
+The maintainer's release pipeline uses Xcode Cloud to test and archive pushes to `master` and `release/*`. The release Actions attach builds to App Store versions; a `vX.Y` tag initiates review submission. They require private App Store Connect credentials and are not needed to build a fork. See [distribution documentation](docs/distribution.md) for maintainer setup and release commands.
 
 ## Architecture
 
@@ -46,15 +71,21 @@ Product scope and shortcuts: [`docs/product.md`](docs/product.md).
 
 ## Dependencies (SPM)
 
-- [`swift-cmark`](https://github.com/apple/swift-cmark) — Apple's CommonMark + GFM parser.
+- [`swift-cmark`](https://github.com/swiftlang/swift-cmark) — CommonMark + GFM parsing.
 - [`Highlightr`](https://github.com/raspu/Highlightr) — syntax highlighting for code blocks.
+
+Third-party license texts are included in [THIRD_PARTY_NOTICES.txt](JustMD/JustMD/Resources/THIRD_PARTY_NOTICES.txt) and bundled with the app. The separate [marketing tools](marketing/README.md) use Remotion to compose promotional videos; Remotion is not an app dependency and is not included in JustMD.
 
 ## Tests
 
-155 tests as of the 1.1 Support work (2026-09-08) (see [`docs/known-issues.md`](docs/known-issues.md) for what it covered). Swift Testing (`@Test`, `@Suite`, `#expect`).
+Behavior tests use Swift Testing (`@Test`, `@Suite`, `#expect`) in the existing `JustMDTests` target.
 
 Run: `xcodebuild ... -parallel-testing-enabled NO -only-testing:JustMDTests test` (parallel test hosts deadlock xcodebuild for an app-hosted bundle).
 
+## Contributing
+
+Bug reports and focused pull requests are welcome. Include reproduction steps and your macOS version when reporting a bug. Keep changes within the native document editor's scope, and add behavior coverage to the existing Swift Testing target. Run the tests above before opening a pull request. See [AGENTS.md](AGENTS.md) for repository guidance.
+
 ## License
 
-MIT, see [LICENSE](LICENSE). The App Store build is free; it offers an optional, repeatable "Buy me a coffee" in-app purchase ($2.99) that the direct-download build does not.
+JustMD's original code and documentation are available under the [MIT License](LICENSE). Third-party components retain their own licenses, listed in the [notices](JustMD/JustMD/Resources/THIRD_PARTY_NOTICES.txt). The official App Store app is free; building and distributing your own copy is also permitted by the license.
