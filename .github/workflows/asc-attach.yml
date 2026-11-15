@@ -4,8 +4,6 @@ on:
   push:
     branches: [master, 'release/**']
     paths-ignore: ['docs/**', '**.md', 'marketing/**']
-  schedule:
-    - cron: '17 * * * *'
   workflow_dispatch:
 
 concurrency:
